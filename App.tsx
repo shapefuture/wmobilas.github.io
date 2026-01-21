@@ -7,6 +7,7 @@ import { About } from './components/About';
 import { Projects } from './components/Projects';
 import { Services } from './components/Services';
 import { Contact } from './components/Contact';
+import { Support } from './components/Support';
 import { Newsletter } from './components/Newsletter';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
@@ -183,6 +184,7 @@ const App: React.FC = () => {
           <Services t={t} />
           <Newsletter t={t} />
           <Contact t={t} />
+          <Support t={t} />
         </main>
         
         <Footer t={t} />
