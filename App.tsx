@@ -19,7 +19,7 @@ import { AuroraBorealis } from './components/AuroraBorealis';
 import { translations, Locale } from './i18n';
 
 const ASSETS = [
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/BACK.jpg",
+  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/BACKG.jpg",
   "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/personal_photo.jpg",
   "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/COCREATIVE.png",
   "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/MAGNUS.jpg",

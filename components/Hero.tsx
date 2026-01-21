@@ -116,7 +116,7 @@ export const Hero: React.FC<{ t: any; startReveal?: boolean; onNameClick?: () =>
           animate={{ opacity: 1, filter: "blur(0px) brightness(1)" }}
           transition={{ duration: 4, ease: [0.16, 1, 0.3, 1] }}
           style={{ y: ySpring }} 
-          src="https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/BACK.jpg" 
+          src="https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/BACKG.jpg" 
           alt="" 
           className="w-full h-full object-cover" 
         />
