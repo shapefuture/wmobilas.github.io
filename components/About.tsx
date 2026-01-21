@@ -139,7 +139,7 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                             </h2>
                         </Reveal>
                         <Reveal delay={0.4}>
-                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white/80 to-white/40 leading-[0.9] tracking-tight mt-2 pb-2 [text-wrap:balance]">
+                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white/80 to-white/40 leading-[0.9] tracking-tight mt-2 pb-2 [text-wrap:balance] whitespace-pre-line">
                                 {t.mission}
                             </h2>
                         </Reveal>

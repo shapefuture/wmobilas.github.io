@@ -147,9 +147,7 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                 
                 <h2 className="text-4xl md:text-6xl font-serif text-white mb-6 drop-shadow-xl [text-wrap:balance]">{t?.newsletterSubtitle || "Transmission Inlet"}</h2>
                 <p className="text-secondary mb-10 text-lg font-light max-w-lg mx-auto leading-relaxed [text-wrap:balance]">
-                    {t?.newsletterDesc} 
-                    <br />
-                    {t?.newsletterJoin}
+                    {t?.newsletterDesc}
                 </p>
 
                 <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto relative group/form">
@@ -166,10 +164,21 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                         className="relative bg-white text-black rounded-full px-8 py-4 font-bold font-mono tracking-widest hover:bg-accent-lime transition-colors flex items-center justify-center gap-2 z-10 text-sm leading-none"
                     >
                         <span>{t?.newsletterButton || "SUBSCRIBE"}</span> 
-                        {/* Adjusted icon size to 14 to match text-sm (14px) and removed extra spacing issues */}
                         <Send size={14} className="stroke-[2.5px]" />
                     </button>
                 </form>
+
+                {/* Join text moved below the form - background removed as requested */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mt-8 flex flex-col items-center gap-3"
+                >
+                    <span className="text-[9px] md:text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">
+                        {t?.newsletterJoin}
+                    </span>
+                </motion.div>
             </div>
         </MotionDiv>
       </div>

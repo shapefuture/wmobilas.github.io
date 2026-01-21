@@ -35,6 +35,7 @@ const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             onMouseMove={handleMouse} 
             onMouseLeave={reset}
             style={{ x: springX, y: springY }}
+            className="flex items-center justify-center"
         >
             {children}
         </motion.div>
@@ -68,27 +69,39 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
                     ( 04 — {t.officeHoursTitle} )
                 </div>
                 
-                <h3 className="text-3xl md:text-6xl font-serif text-white mb-8 leading-tight max-w-3xl [text-wrap:balance]">
+                <h3 className="text-3xl md:text-6xl font-serif text-white mb-8 leading-tight max-w-3xl [text-wrap:balance] text-center whitespace-pre-line">
                     {t.officeHoursDesc}
                 </h3>
             </div>
         </Reveal>
 
-        <div className="mt-10 md:mt-16 mb-20 md:mb-24 flex justify-center relative items-center">
+        <div className="mt-10 md:mt-16 mb-20 md:mb-24 flex justify-center w-full">
             <Magnetic>
                 <a 
                     href="https://calendly.com/shapefuture/30min"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative inline-flex items-center justify-center w-56 h-20 md:w-80 md:h-32 rounded-[1.5rem] md:rounded-[2rem] bg-[#111] border border-white/10 overflow-hidden transition-colors duration-500 hover:border-accent-lime/50 shadow-2xl"
+                    className="group relative flex flex-col items-center justify-center w-64 h-24 md:w-80 md:h-32 rounded-[1.5rem] md:rounded-[2rem] bg-[#111] border border-white/10 overflow-hidden transition-colors duration-500 hover:border-accent-lime/50 shadow-2xl"
                 >
-                    <div className="absolute inset-0 bg-accent-lime translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[0.19,1,0.22,1]" />
-                    <div className="relative z-10 flex flex-col items-center justify-center transition-colors duration-300 group-hover:text-black text-white">
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <span className="text-lg md:text-2xl font-serif italic [text-wrap:balance]">{t.bookNow}</span>
-                            <ArrowUpRight size={18} className="group-hover:rotate-45 transition-transform duration-500" />
+                    {/* Background fill - slower transition for premium feel */}
+                    <div className="absolute inset-0 bg-accent-lime translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-[0.16,1,0.3,1]" />
+                    
+                    <div className="relative z-10 flex flex-col items-center justify-center w-full">
+                        {/* Text: Color transition is faster (150ms) than background (700ms) to satisfy "text black before button lime" */}
+                        <div className="flex items-center justify-center text-white group-hover:text-black transition-colors duration-150 ease-out">
+                            <div className="flex items-center gap-2 relative">
+                                <span className="text-lg md:text-2xl font-serif italic leading-none whitespace-nowrap">
+                                    {t.bookNow}
+                                </span>
+                                {/* Arrow: Now integrated into the centered flex group to avoid sticking to right edge */}
+                                <div className="w-0 group-hover:w-6 transition-all duration-500 ease-[0.16,1,0.3,1] overflow-hidden flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                     <ArrowUpRight size={22} className="shrink-0 group-hover:rotate-45 transition-transform duration-500" />
+                                </div>
+                            </div>
                         </div>
-                        <span className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest opacity-50 group-hover:opacity-100 mt-1">{t.limited}</span>
+                        <span className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest text-white/50 group-hover:text-black/50 transition-colors duration-150 mt-2 block">
+                            {t.limited}
+                        </span>
                     </div>
                 </a>
             </Magnetic>
