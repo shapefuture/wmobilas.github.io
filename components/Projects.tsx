@@ -137,7 +137,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
         title: t.project2Title, 
         category: t.catAccelerator,
         image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/MAGNUS.jpg",
-        link: "#",
+        link: "https://www.instagram.com/magnusanim.us",
         year: "2025",
         hoverDesc: t.project2Hover
     }

@@ -26,7 +26,6 @@ const ServiceCard: React.FC<{
         let time = 0;
         let width = 0;
         let height = 0;
-        let dpr = 1;
 
         // Mobile Detection for Adaptive Contrast
         const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -48,7 +47,6 @@ const ServiceCard: React.FC<{
             ctx.fillRect(0, 0, width, height);
 
             ctx.fillStyle = isHovered ? '#D4FF00' : `rgba(255, 255, 255, ${0.25 + opacityBoost})`;
-            // Bold font for better visibility on mobile small screens
             ctx.font = `bold ${fontSize}px monospace`;
 
             for (let i = 0; i < drops.length; i++) {
@@ -68,7 +66,6 @@ const ServiceCard: React.FC<{
         // 1. VISUAL COMMUNICATION: Sine Waves
         const drawWaves = () => {
             ctx.clearRect(0, 0, width, height);
-            // Thicker lines on mobile
             ctx.lineWidth = isMobile ? 2 : 1.5;
             const lines = 8;
             const step = height / lines;
@@ -118,7 +115,6 @@ const ServiceCard: React.FC<{
                 const baseAlpha = 0.15 + pulse * 0.15 + opacityBoost;
                 ctx.fillStyle = isHovered ? `rgba(212, 255, 0, ${0.5 + pulse * 0.5})` : `rgba(255, 255, 255, ${baseAlpha})`;
                 ctx.beginPath();
-                // Larger nodes on mobile
                 ctx.arc(node.x, node.y, isHovered ? 2.5 : (isMobile ? 2 : 1.5), 0, Math.PI * 2);
                 ctx.fill();
             });
@@ -133,7 +129,6 @@ const ServiceCard: React.FC<{
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     if(dist < 100) {
                         const distAlpha = (1 - (dist / 100));
-                        // Increase connection visibility on mobile
                         ctx.globalAlpha = isMobile ? Math.min(1, distAlpha * 2) : distAlpha;
                         ctx.beginPath();
                         ctx.moveTo(nodes[i].x, nodes[i].y);
@@ -166,7 +161,6 @@ const ServiceCard: React.FC<{
              crawlers.forEach((c: any) => {
                  ctx.beginPath();
                  ctx.strokeStyle = isHovered ? c.color : `rgba(255,255,255,${0.15 + opacityBoost})`;
-                 // Thicker circuitry on mobile
                  ctx.lineWidth = isMobile ? 2.5 : 2;
                  ctx.moveTo(c.x, c.y);
                  
@@ -233,7 +227,6 @@ const ServiceCard: React.FC<{
                     ctx.shadowBlur = 10;
                 }
                 ctx.beginPath();
-                // Larger planets on mobile
                 ctx.arc(px, py, isHovered ? 3 : (isMobile ? 2.5 : 2), 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
@@ -247,11 +240,9 @@ const ServiceCard: React.FC<{
 
         // 5. IDEA VALIDATION: Stealth Radar with Sparse Reveal
         const drawScanner = () => {
-            // Strong Fade for trail effect
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
             ctx.fillRect(0, 0, width, height);
             
-            // Initialize Hidden "Idea" Points once
             if (!(canvas as any).ideas) {
                  const ideaCount = isMobile ? 12 : 20; 
                  (canvas as any).ideas = Array.from({length: ideaCount}, () => ({
@@ -261,31 +252,23 @@ const ServiceCard: React.FC<{
                  }));
             }
             const ideas = (canvas as any).ideas;
-
-            // Scan line position
             const scanSpeed = isHovered ? 4 : 1;
             const scanX = (time * scanSpeed) % (width + 100);
             
-            // Draw Revealed Ideas
             ideas.forEach((idea: any) => {
                 const dist = Math.abs(idea.x - (scanX - 50));
-                
-                // Only draw if scanner is close
                 if (dist < 60) {
                      const intensity = 1 - (dist / 60);
-                     // Bloom effect when scanned
                      ctx.fillStyle = `rgba(212, 255, 0, ${intensity})`;
                      ctx.shadowColor = '#D4FF00';
                      ctx.shadowBlur = intensity * 10;
                      ctx.beginPath();
-                     // Larger dots on mobile
                      ctx.arc(idea.x, idea.y, idea.size * (isMobile ? 1.5 : 1), 0, Math.PI * 2);
                      ctx.fill();
                      ctx.shadowBlur = 0;
                 } 
             });
 
-            // Scanner Bar (Vertical)
             const gradient = ctx.createLinearGradient(scanX - 50, 0, scanX, 0);
             gradient.addColorStop(0, 'rgba(212, 255, 0, 0)');
             const barAlpha = isHovered ? 0.3 : (0.1 + opacityBoost);
@@ -293,8 +276,6 @@ const ServiceCard: React.FC<{
             
             ctx.fillStyle = gradient;
             ctx.fillRect(scanX - 60, 0, 60, height);
-            
-            // Scanner thin leading edge
             ctx.fillStyle = isHovered ? '#D4FF00' : `rgba(255,255,255,${0.3 + opacityBoost})`;
             ctx.fillRect(scanX, 0, isMobile ? 2 : 1, height);
         };
@@ -316,18 +297,24 @@ const ServiceCard: React.FC<{
         const resize = () => {
             if (canvas.parentElement) {
                 const rect = canvas.parentElement.getBoundingClientRect();
-                dpr = window.devicePixelRatio || 1;
+                const dpr = window.devicePixelRatio || 1;
+                
+                // Set logical dimensions (CSS pixels)
                 width = rect.width;
                 height = rect.height;
                 
-                // Fix for Retina/High-DPI screens: Scale canvas dimensions by DPR
+                // Set buffer dimensions (Physical pixels)
                 canvas.width = width * dpr;
                 canvas.height = height * dpr;
                 
-                // Scale context to ensure logical coordinates match CSS pixels
+                // CRITICAL: Explicitly set CSS size to prevent canvas from expanding to buffer size
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                
+                // Scale context logic
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
                 ctx.scale(dpr, dpr);
                 
-                // Reset heavy caches on resize to match new dimensions
                 (canvas as any).drops = null;
                 (canvas as any).nodes = null;
                 (canvas as any).crawlers = null;
