@@ -19,88 +19,122 @@ const ServiceCard: React.FC<{
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) return;
 
         let animationId: number;
         let time = 0;
+        let width = 0;
+        let height = 0;
+        let dpr = 1;
+
+        // Mobile Detection for Adaptive Contrast
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        // Boost opacity on mobile for visibility against glare
+        const opacityBoost = isMobile ? 0.2 : 0;
 
         // --- ANIMATION KERNELS ---
         
+        // 0. TREND FORECASTING: Matrix Rain
         const drawMatrix = () => {
-            const columns = Math.floor(canvas.width / 14);
-            if (!(canvas as any).drops) {
+            const fontSize = 12;
+            const columns = Math.floor(width / 14);
+            if (!(canvas as any).drops || (canvas as any).drops.length !== columns) {
                 (canvas as any).drops = new Array(columns).fill(1);
             }
             const drops = (canvas as any).drops;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, width, height);
 
-            ctx.fillStyle = isHovered ? '#D4FF00' : 'rgba(255, 255, 255, 0.15)';
-            ctx.font = '10px monospace';
+            ctx.fillStyle = isHovered ? '#D4FF00' : `rgba(255, 255, 255, ${0.25 + opacityBoost})`;
+            // Bold font for better visibility on mobile small screens
+            ctx.font = `bold ${fontSize}px monospace`;
 
             for (let i = 0; i < drops.length; i++) {
                 const text = String.fromCharCode(0x30A0 + Math.random() * 96);
                 const x = i * 14;
                 const y = drops[i] * 14;
+                
                 ctx.fillText(text, x, y);
-                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+
+                if (y > height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
                 drops[i]++;
             }
         };
 
+        // 1. VISUAL COMMUNICATION: Sine Waves
         const drawWaves = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.lineWidth = 1;
-            const lines = 6;
-            const step = canvas.height / lines;
+            ctx.clearRect(0, 0, width, height);
+            // Thicker lines on mobile
+            ctx.lineWidth = isMobile ? 2 : 1.5;
+            const lines = 8;
+            const step = height / lines;
+            
             for(let i=0; i<lines; i++) {
                 ctx.beginPath();
                 const yBase = i * step + step/2;
-                const alpha = isHovered ? 0.3 + (i/lines)*0.4 : 0.05;
-                ctx.strokeStyle = isHovered ? `rgba(212, 255, 0, ${alpha})` : 'rgba(255, 255, 255, 0.05)';
-                for(let x=0; x<canvas.width; x+=10) {
+                const alpha = isHovered ? 0.3 + (i/lines)*0.4 : 0.1 + opacityBoost;
+                ctx.strokeStyle = isHovered ? `rgba(212, 255, 0, ${alpha})` : `rgba(255, 255, 255, ${Math.min(1, alpha)})`;
+                
+                for(let x=0; x<width; x+=5) {
                     const frequency = 0.01 + (i * 0.002);
-                    const amplitude = isHovered ? 15 : 4;
+                    const amplitude = isHovered ? 20 : 5;
                     const phase = time * 0.05 + i;
-                    const y = yBase + Math.sin(x * frequency + phase) * amplitude;
+                    const y = yBase + Math.sin(x * frequency + phase) * amplitude * Math.sin(time * 0.02 + x * 0.005);
                     ctx.lineTo(x, y);
                 }
                 ctx.stroke();
             }
         };
 
+        // 2. FUTURE OF WORK: Connected Nodes
         const drawPlexus = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, width, height);
+            
             if (!(canvas as any).nodes) {
-                const count = 15;
-                (canvas as any).nodes = Array.from({length: count}, () => ({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.4,
-                    vy: (Math.random() - 0.5) * 0.4,
+                const count = isMobile ? 15 : 25;
+                (canvas as any).nodes = Array.from({length: count}, (_, i) => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
                     phase: Math.random() * Math.PI * 2
                 }));
             }
+            
             const nodes = (canvas as any).nodes;
+
             nodes.forEach((node: any) => {
                 node.x += node.vx * (isHovered ? 2 : 1);
                 node.y += node.vy * (isHovered ? 2 : 1);
-                if(node.x < 0 || node.x > canvas.width) node.vx *= -1;
-                if(node.y < 0 || node.y > canvas.height) node.vy *= -1;
-                ctx.fillStyle = isHovered ? `rgba(212, 255, 0, 0.4)` : `rgba(255, 255, 255, 0.1)`;
+                
+                if(node.x < 0 || node.x > width) node.vx *= -1;
+                if(node.y < 0 || node.y > height) node.vy *= -1;
+                
+                const pulse = Math.sin(time * 0.1 + node.phase) * 0.5 + 0.5;
+                const baseAlpha = 0.15 + pulse * 0.15 + opacityBoost;
+                ctx.fillStyle = isHovered ? `rgba(212, 255, 0, ${0.5 + pulse * 0.5})` : `rgba(255, 255, 255, ${baseAlpha})`;
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
+                // Larger nodes on mobile
+                ctx.arc(node.x, node.y, isHovered ? 2.5 : (isMobile ? 2 : 1.5), 0, Math.PI * 2);
                 ctx.fill();
             });
-            ctx.strokeStyle = isHovered ? 'rgba(212, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.03)';
+
+            ctx.strokeStyle = isHovered ? 'rgba(212, 255, 0, 0.2)' : `rgba(255, 255, 255, ${0.05 + opacityBoost})`;
+            ctx.lineWidth = isMobile ? 1.5 : 1;
+
             for(let i=0; i<nodes.length; i++) {
                 for(let j=i+1; j<nodes.length; j++) {
                     const dx = nodes[i].x - nodes[j].x;
                     const dy = nodes[i].y - nodes[j].y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    if(dist < 80) {
+                    if(dist < 100) {
+                        const distAlpha = (1 - (dist / 100));
+                        // Increase connection visibility on mobile
+                        ctx.globalAlpha = isMobile ? Math.min(1, distAlpha * 2) : distAlpha;
                         ctx.beginPath();
                         ctx.moveTo(nodes[i].x, nodes[i].y);
                         ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -108,63 +142,161 @@ const ServiceCard: React.FC<{
                     }
                 }
             }
+            ctx.globalAlpha = 1;
         };
 
+        // 3. PROBLEM SOLVING: Circuitry
         const drawCircuitry = () => {
              ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-             ctx.fillRect(0, 0, canvas.width, canvas.height);
+             ctx.fillRect(0, 0, width, height);
+             
              if (!(canvas as any).crawlers) {
-                 (canvas as any).crawlers = Array.from({length: 5}, () => ({
-                     x: Math.floor(Math.random() * canvas.width / 10) * 10,
-                     y: Math.floor(Math.random() * canvas.height / 10) * 10,
+                 (canvas as any).crawlers = Array.from({length: isMobile ? 5 : 8}, () => ({
+                     x: Math.floor(Math.random() * width / 10) * 10,
+                     y: Math.floor(Math.random() * height / 10) * 10,
                      vx: Math.random() > 0.5 ? 2 : -2,
                      vy: 0,
-                     color: '#D4FF00',
+                     color: Math.random() > 0.5 ? '#D4FF00' : '#FFFFFF',
+                     life: Math.random() * 100
                  }));
              }
+             
              const crawlers = (canvas as any).crawlers;
+             
              crawlers.forEach((c: any) => {
                  ctx.beginPath();
-                 ctx.strokeStyle = isHovered ? c.color : 'rgba(255,255,255,0.05)';
+                 ctx.strokeStyle = isHovered ? c.color : `rgba(255,255,255,${0.15 + opacityBoost})`;
+                 // Thicker circuitry on mobile
+                 ctx.lineWidth = isMobile ? 2.5 : 2;
                  ctx.moveTo(c.x, c.y);
-                 c.x += c.vx; c.y += c.vy;
+                 
+                 c.x += c.vx;
+                 c.y += c.vy;
+                 
                  ctx.lineTo(c.x, c.y);
                  ctx.stroke();
+                 
                  if (Math.random() > 0.95) {
-                     if (c.vx !== 0) { c.vx = 0; c.vy = Math.random() > 0.5 ? 2 : -2; } 
-                     else { c.vy = 0; c.vx = Math.random() > 0.5 ? 2 : -2; }
+                     if (c.vx !== 0) {
+                         c.vx = 0;
+                         c.vy = Math.random() > 0.5 ? 2 : -2;
+                     } else {
+                         c.vy = 0;
+                         c.vx = Math.random() > 0.5 ? 2 : -2;
+                     }
                  }
-                 if (c.x < 0 || c.x > canvas.width || c.y < 0 || c.y > canvas.height) {
-                     c.x = Math.floor(Math.random() * canvas.width / 10) * 10;
-                     c.y = Math.floor(Math.random() * canvas.height / 10) * 10;
+                 
+                 if (c.x < 0 || c.x > width || c.y < 0 || c.y > height || Math.random() > 0.99) {
+                     c.x = Math.floor(Math.random() * width / 10) * 10;
+                     c.y = Math.floor(Math.random() * height / 10) * 10;
                  }
              });
+             
+             if (isHovered) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                for(let x=0; x<width; x+=20) {
+                    for(let y=0; y<height; y+=20) {
+                        ctx.fillRect(x,y,1,1);
+                    }
+                }
+             }
         };
 
+        // 4. SELF DISCOVERY: Orbital Mechanics
         const drawOrbit = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const cx = canvas.width / 2; const cy = canvas.height / 2;
-            for(let i=0; i<3; i++) {
-                const r = 30 + (i * 20);
+            ctx.clearRect(0, 0, width, height);
+            const cx = width / 2;
+            const cy = height / 2;
+            const rings = 4;
+            
+            for(let i=0; i<rings; i++) {
+                const r = 40 + (i * 25);
+                const squish = 0.4 + (i * 0.1); 
+                const rotation = (i * Math.PI) / rings; 
+                
                 ctx.beginPath();
-                ctx.strokeStyle = isHovered ? `rgba(212, 255, 0, 0.2)` : 'rgba(255, 255, 255, 0.05)';
-                ctx.ellipse(cx, cy, r, r * 0.5, i * Math.PI/3, 0, Math.PI * 2);
+                const alpha = isHovered ? (0.4 - i * 0.05) : (0.1 + opacityBoost);
+                ctx.strokeStyle = isHovered ? `rgba(212, 255, 0, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
+                ctx.lineWidth = isMobile ? 1.5 : 1;
+                ctx.ellipse(cx, cy, r, r * squish, rotation, 0, Math.PI * 2);
                 ctx.stroke();
-                const t = time * 0.02 + i;
-                const px = cx + r * Math.cos(t);
-                const py = cy + r * 0.5 * Math.sin(t);
+                
+                const speed = 0.02 * (isHovered ? 2 : 1) * (i % 2 === 0 ? 1 : -1);
+                const t = time * speed + (i * 100);
+                
+                const px = cx + r * Math.cos(t) * Math.cos(rotation) - r * squish * Math.sin(t) * Math.sin(rotation);
+                const py = cy + r * Math.cos(t) * Math.sin(rotation) + r * squish * Math.sin(t) * Math.cos(rotation);
+                
                 ctx.fillStyle = isHovered ? '#D4FF00' : '#FFFFFF';
-                ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+                if (isHovered) {
+                    ctx.shadowColor = '#D4FF00';
+                    ctx.shadowBlur = 10;
+                }
+                ctx.beginPath();
+                // Larger planets on mobile
+                ctx.arc(px, py, isHovered ? 3 : (isMobile ? 2.5 : 2), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
             }
+            
+            ctx.fillStyle = isHovered ? '#FFFFFF' : `rgba(255,255,255,${0.2 + opacityBoost})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, isMobile ? 4 : 3, 0, Math.PI * 2);
+            ctx.fill();
         };
 
+        // 5. IDEA VALIDATION: Stealth Radar with Sparse Reveal
         const drawScanner = () => {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const scanX = (time * 2) % (canvas.width + 50);
-            ctx.fillStyle = isHovered ? 'rgba(212, 255, 0, 0.2)' : 'rgba(255, 255, 255, 0.03)';
-            ctx.fillRect(scanX - 30, 0, 30, canvas.height);
-            ctx.fillStyle = isHovered ? '#D4FF00' : 'rgba(255,255,255,0.1)';
-            ctx.fillRect(scanX, 0, 1, canvas.height);
+            // Strong Fade for trail effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
+            ctx.fillRect(0, 0, width, height);
+            
+            // Initialize Hidden "Idea" Points once
+            if (!(canvas as any).ideas) {
+                 const ideaCount = isMobile ? 12 : 20; 
+                 (canvas as any).ideas = Array.from({length: ideaCount}, () => ({
+                     x: Math.random() * width,
+                     y: Math.random() * height,
+                     size: Math.random() * 2 + 1
+                 }));
+            }
+            const ideas = (canvas as any).ideas;
+
+            // Scan line position
+            const scanSpeed = isHovered ? 4 : 1;
+            const scanX = (time * scanSpeed) % (width + 100);
+            
+            // Draw Revealed Ideas
+            ideas.forEach((idea: any) => {
+                const dist = Math.abs(idea.x - (scanX - 50));
+                
+                // Only draw if scanner is close
+                if (dist < 60) {
+                     const intensity = 1 - (dist / 60);
+                     // Bloom effect when scanned
+                     ctx.fillStyle = `rgba(212, 255, 0, ${intensity})`;
+                     ctx.shadowColor = '#D4FF00';
+                     ctx.shadowBlur = intensity * 10;
+                     ctx.beginPath();
+                     // Larger dots on mobile
+                     ctx.arc(idea.x, idea.y, idea.size * (isMobile ? 1.5 : 1), 0, Math.PI * 2);
+                     ctx.fill();
+                     ctx.shadowBlur = 0;
+                } 
+            });
+
+            // Scanner Bar (Vertical)
+            const gradient = ctx.createLinearGradient(scanX - 50, 0, scanX, 0);
+            gradient.addColorStop(0, 'rgba(212, 255, 0, 0)');
+            const barAlpha = isHovered ? 0.3 : (0.1 + opacityBoost);
+            gradient.addColorStop(1, isHovered ? `rgba(212, 255, 0, ${barAlpha})` : `rgba(255, 255, 255, ${barAlpha})`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(scanX - 60, 0, 60, height);
+            
+            // Scanner thin leading edge
+            ctx.fillStyle = isHovered ? '#D4FF00' : `rgba(255,255,255,${0.3 + opacityBoost})`;
+            ctx.fillRect(scanX, 0, isMobile ? 2 : 1, height);
         };
 
         const draw = () => {
@@ -176,20 +308,37 @@ const ServiceCard: React.FC<{
                 case 3: drawCircuitry(); break;
                 case 4: drawOrbit(); break;
                 case 5: drawScanner(); break;
+                default: drawMatrix(); break;
             }
             animationId = requestAnimationFrame(draw);
         };
 
         const resize = () => {
-            const rect = canvas.parentElement?.getBoundingClientRect();
-            if (rect) {
-                canvas.width = rect.width;
-                canvas.height = rect.height;
+            if (canvas.parentElement) {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                dpr = window.devicePixelRatio || 1;
+                width = rect.width;
+                height = rect.height;
+                
+                // Fix for Retina/High-DPI screens: Scale canvas dimensions by DPR
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                
+                // Scale context to ensure logical coordinates match CSS pixels
+                ctx.scale(dpr, dpr);
+                
+                // Reset heavy caches on resize to match new dimensions
+                (canvas as any).drops = null;
+                (canvas as any).nodes = null;
+                (canvas as any).crawlers = null;
+                (canvas as any).ideas = null;
             }
         };
-        resize();
+
         window.addEventListener('resize', resize);
+        resize();
         draw();
+        
         return () => {
             cancelAnimationFrame(animationId);
             window.removeEventListener('resize', resize);
@@ -206,7 +355,10 @@ const ServiceCard: React.FC<{
             onMouseLeave={() => setIsHovered(false)}
             className={`group relative p-6 md:p-8 bg-surface/40 backdrop-blur-sm border border-white/10 overflow-hidden flex flex-col justify-between min-h-[260px] md:min-h-[300px] rounded-sm hover:border-accent-lime/50 transition-colors duration-500 ${className}`}
         >
-            <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-30 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none" />
+            <canvas 
+                ref={canvasRef} 
+                className="absolute inset-0 z-0 opacity-40 md:opacity-30 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none" 
+            />
             <div className="relative z-10">
                 <div className="text-white/40 mb-4 md:mb-6 group-hover:text-accent-lime transition-colors duration-300">
                     {icon}
