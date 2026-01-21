@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { Section } from './ui/Section';
 import { Reveal } from './ui/Reveal';
-import { Heart, ArrowUpRight } from 'lucide-react';
+import { Heart, ArrowUpRight, Mail, Send, MessageCircle } from 'lucide-react';
 
 const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -107,6 +107,38 @@ export const Support: React.FC<{ t: any }> = ({ t }) => {
                     </a>
                  </Magnetic>
              </Reveal>
+         </div>
+
+         <div className="mt-20 md:mt-32 w-full max-w-2xl mx-auto border-t border-white/10 pt-16">
+            <Reveal width="100%" delay={0.4}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-8">
+                    {/* Socials Column */}
+                    <div className="flex flex-col items-center">
+                        <h4 className="font-serif text-2xl text-white mb-8 italic">{t.socials}</h4>
+                        <div className="flex flex-col gap-4 text-center">
+                            <a href="https://twitter.com/wmobilas" target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] hover:tracking-[0.3em] duration-300">Twitter (X)</a>
+                            <a href="https://www.linkedin.com/in/wmobilas" target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] hover:tracking-[0.3em] duration-300">LinkedIn</a>
+                            <a href="http://instagram.com/viktorperminov.me" target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] hover:tracking-[0.3em] duration-300">Instagram</a>
+                        </div>
+                    </div>
+
+                    {/* Direct Column */}
+                    <div className="flex flex-col items-center">
+                        <h4 className="font-serif text-2xl text-white mb-8 italic">{t.direct}</h4>
+                        <div className="flex flex-col gap-4 items-center">
+                            <a href="mailto:wmobilas@gmail.com" className="group text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] flex items-center gap-3">
+                                <Mail size={12} className="group-hover:scale-110 transition-transform"/> Email
+                            </a>
+                            <a href="http://t.me/wmobilas" target="_blank" rel="noopener noreferrer" className="group text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] flex items-center gap-3">
+                                <Send size={12} className="group-hover:scale-110 transition-transform" /> Telegram
+                            </a>
+                            <a href="https://wa.me/17045941024" target="_blank" rel="noopener noreferrer" className="group text-secondary hover:text-accent-lime transition-colors font-mono text-xs md:text-sm uppercase tracking-[0.2em] flex items-center gap-3">
+                                <MessageCircle size={12} className="group-hover:scale-110 transition-transform" /> WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </Reveal>
          </div>
       </div>
     </Section>

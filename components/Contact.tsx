@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { Section } from './ui/Section';
 import { Reveal } from './ui/Reveal';
-import { ArrowUpRight, Mail, Send, Radio, MessageCircle } from 'lucide-react';
+import { ArrowUpRight, Radio } from 'lucide-react';
 
 const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -75,7 +75,7 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
             </div>
         </Reveal>
 
-        <div className="mt-10 md:mt-16 mb-20 md:mb-24 flex justify-center w-full">
+        <div className="mt-10 md:mt-16 flex justify-center w-full">
             <Magnetic>
                 <a 
                     href="https://calendly.com/shapefuture/30min"
@@ -105,51 +105,6 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
                     </div>
                 </a>
             </Magnetic>
-        </div>
-
-        {/* Centered container for the grid - Ensures columns are visually centered on mobile */}
-        <div className="w-full max-w-4xl px-4">
-            <Reveal width="100%" delay={0.2}>
-                <p className="mb-12 md:mb-16 text-[9px] md:text-xs font-mono text-white/40 uppercase tracking-widest text-center [text-wrap:balance]">
-                    {t.officeHoursStats}
-                </p>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-10 gap-y-12 text-left border-t border-white/10 pt-12 md:pt-16 justify-items-center md:justify-items-start">
-                    <div className="space-y-4 flex flex-col items-start w-full">
-                        <h4 className="text-white font-serif text-lg">{t.socials}</h4>
-                        <div className="flex flex-col gap-2 text-xs md:text-sm text-secondary font-mono">
-                            <a href="https://twitter.com/wmobilas" className="hover:text-accent-lime transition-colors">Twitter (X)</a>
-                            <a href="https://www.linkedin.com/in/wmobilas" className="hover:text-accent-lime transition-colors">LinkedIn</a>
-                            <a href="http://instagram.com/viktorperminov.me" className="hover:text-accent-lime transition-colors">Instagram</a>
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-4 flex flex-col items-start w-full">
-                        <h4 className="text-white font-serif text-lg">{t.direct}</h4>
-                        <div className="flex flex-col gap-2 text-xs md:text-sm text-secondary font-mono items-start">
-                            <a href="mailto:wmobilas@gmail.com" className="hover:text-accent-lime transition-colors flex items-center gap-2"><Mail size={12}/> Email</a>
-                            <a href="http://t.me/wmobilas" className="hover:text-accent-lime transition-colors flex items-center gap-2"><Send size={12}/> Telegram</a>
-                            <a href="https://wa.me/17045941024" className="hover:text-accent-lime transition-colors flex items-center gap-2"><MessageCircle size={12}/> WhatsApp</a>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 flex flex-col items-start w-full">
-                        <h4 className="text-white font-serif text-lg">{t.support}</h4>
-                        <div className="flex flex-col gap-2 text-xs md:text-sm text-secondary font-mono">
-                            <a href="http://coindrop.to/shapefuture" className="hover:text-accent-lime transition-colors">Coindrop</a>
-                            <span className="text-white/30 cursor-not-allowed">Patreon (Soon)</span>
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-4 flex flex-col items-start md:items-end w-full md:text-right">
-                        <h4 className="text-white font-serif text-lg">{t.location}</h4>
-                        <div className="flex flex-col gap-2 text-xs md:text-sm text-secondary font-mono items-start md:items-end">
-                        <span>{t.planetEarth}</span>
-                        <span className="text-accent-lime/60">{t.localTime}: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                    </div>
-                </div>
-            </Reveal>
         </div>
       </div>
     </Section>
