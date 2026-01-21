@@ -64,6 +64,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
+    
+    // Safety Timeout: If loading takes more than 5 seconds, force unlock
+    const safetyTimeout = setTimeout(() => {
+        if (mounted && loading) {
+            setLoading(false);
+            setProgress(100);
+        }
+    }, 5000);
+
     const loadAllAssets = async () => {
       let loadedCount = 0;
       const totalAssets = ASSETS.length;
@@ -83,11 +92,15 @@ const App: React.FC = () => {
       await Promise.all(promises);
       if (mounted) {
         setProgress(100);
+        clearTimeout(safetyTimeout);
         setTimeout(() => setLoading(false), 800);
       }
     };
     loadAllAssets();
-    return () => { mounted = false; };
+    return () => { 
+        mounted = false; 
+        clearTimeout(safetyTimeout);
+    };
   }, []);
 
   const toggleLanguage = (e: React.MouseEvent) => {
@@ -154,7 +167,7 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
       
-      <div className={`min-h-screen bg-background text-primary selection:bg-accent-lime selection:text-black transition-opacity duration-700 ${loading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`w-full bg-background text-primary selection:bg-accent-lime selection:text-black transition-opacity duration-700 ${loading ? 'opacity-0 pointer-events-none overflow-hidden' : 'opacity-100'}`}>
         <Header locale={locale} setLocale={toggleLanguage as any} t={t} />
         
         <main className="relative z-10 w-full overflow-x-hidden">
