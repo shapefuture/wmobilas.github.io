@@ -211,10 +211,10 @@ const ServiceCard: React.FC<{
                 <div className="text-white/40 mb-4 md:mb-6 group-hover:text-accent-lime transition-colors duration-300">
                     {icon}
                 </div>
-                <h3 className="text-xl md:text-2xl font-serif text-white mb-2 md:mb-3 group-hover:translate-x-1 transition-transform">
+                <h3 className="text-xl md:text-2xl font-serif text-white mb-2 md:mb-3 group-hover:translate-x-1 transition-transform [text-wrap:balance]">
                     {title}
                 </h3>
-                <p className="text-[11px] md:text-sm text-secondary leading-relaxed group-hover:text-white/80 transition-colors">
+                <p className="text-[11px] md:text-sm text-secondary leading-relaxed group-hover:text-white/80 transition-colors [text-wrap:balance]">
                     {description}
                 </p>
             </div>
@@ -234,7 +234,7 @@ export const Services: React.FC<{ t: any }> = ({ t }) => {
             >
                 <Quote size={28} className="mx-auto opacity-80" />
             </motion.div>
-            <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif">
+            <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif [text-wrap:balance]">
                 <MagicalText text={t.servicesQuote} delay={0.2} />
             </div>
         </div>
@@ -244,7 +244,7 @@ export const Services: React.FC<{ t: any }> = ({ t }) => {
                 <div className="inline-block px-3 py-1 border border-accent-lime/30 rounded-full text-accent-lime text-[9px] font-mono uppercase tracking-widest mb-4">
                     ( 03 — {t.whatIDo} )
                 </div>
-                <h2 className="text-3xl md:text-6xl font-serif text-white">{t.whatIDo}</h2>
+                <h2 className="text-3xl md:text-6xl font-serif text-white [text-wrap:balance]">{t.whatIDo}</h2>
             </Reveal>
         </div>
 

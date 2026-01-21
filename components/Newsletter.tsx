@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Section } from './ui/Section';
@@ -144,8 +145,8 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                     /// {t?.newsletterTitle || "DIGITAL_DOSSIER"}
                 </div>
                 
-                <h2 className="text-4xl md:text-6xl font-serif text-white mb-6 drop-shadow-xl">{t?.newsletterSubtitle || "Transmission Inlet"}</h2>
-                <p className="text-secondary mb-10 text-lg font-light max-w-lg mx-auto leading-relaxed">
+                <h2 className="text-4xl md:text-6xl font-serif text-white mb-6 drop-shadow-xl [text-wrap:balance]">{t?.newsletterSubtitle || "Transmission Inlet"}</h2>
+                <p className="text-secondary mb-10 text-lg font-light max-w-lg mx-auto leading-relaxed [text-wrap:balance]">
                     {t?.newsletterDesc} 
                     <br />
                     {t?.newsletterJoin}

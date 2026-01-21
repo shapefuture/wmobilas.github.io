@@ -68,7 +68,7 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
                     ( 04 — {t.officeHoursTitle} )
                 </div>
                 
-                <h3 className="text-3xl md:text-6xl font-serif text-white mb-8 leading-tight max-w-3xl">
+                <h3 className="text-3xl md:text-6xl font-serif text-white mb-8 leading-tight max-w-3xl [text-wrap:balance]">
                     {t.officeHoursDesc}
                 </h3>
             </div>
@@ -85,7 +85,7 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
                     <div className="absolute inset-0 bg-accent-lime translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[0.19,1,0.22,1]" />
                     <div className="relative z-10 flex flex-col items-center justify-center transition-colors duration-300 group-hover:text-black text-white">
                         <div className="flex items-center gap-2 md:gap-3">
-                            <span className="text-lg md:text-2xl font-serif italic">{t.bookNow}</span>
+                            <span className="text-lg md:text-2xl font-serif italic [text-wrap:balance]">{t.bookNow}</span>
                             <ArrowUpRight size={18} className="group-hover:rotate-45 transition-transform duration-500" />
                         </div>
                         <span className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest opacity-50 group-hover:opacity-100 mt-1">{t.limited}</span>
@@ -97,7 +97,7 @@ export const Contact: React.FC<{ t: any }> = ({ t }) => {
         {/* Centered container for the grid - Ensures columns are visually centered on mobile */}
         <div className="w-full max-w-4xl px-4">
             <Reveal width="100%" delay={0.2}>
-                <p className="mb-12 md:mb-16 text-[9px] md:text-xs font-mono text-white/40 uppercase tracking-widest text-center">
+                <p className="mb-12 md:mb-16 text-[9px] md:text-xs font-mono text-white/40 uppercase tracking-widest text-center [text-wrap:balance]">
                     {t.officeHoursStats}
                 </p>
                 

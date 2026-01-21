@@ -57,7 +57,7 @@ const MethodNode: React.FC<{ title: string; desc: string; index: number }> = ({ 
     }
   
     return (
-      <Reveal delay={index * 0.2}>
+      <Reveal delay={index * 0.2} fullHeight={true}>
         <div 
             className="group relative h-full bg-white/5 border border-white/10 p-6 md:p-8 rounded-sm overflow-hidden hover:border-accent-lime/30 transition-colors duration-500"
             onMouseMove={handleMouseMove}
@@ -97,7 +97,7 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
             
             {/* PORTRAIT */}
             <div className="lg:w-[42%] relative order-2 lg:order-1 flex flex-col">
-                 <Reveal delay={0.2} className="h-full">
+                 <Reveal delay={0.2} className="h-full" fullHeight={true}>
                     <div className="relative w-full h-full min-h-[400px] md:min-h-[500px] rounded-sm overflow-hidden border border-white/10 group bg-[#0A0A0A]">
                         <img 
                             src="https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/personal_photo.jpg" 
@@ -134,12 +134,12 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                     
                     <div className="relative mb-10 md:mb-12">
                         <Reveal delay={0.2}>
-                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-white leading-[0.9] tracking-tight drop-shadow-2xl">
+                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-white leading-[0.9] tracking-tight drop-shadow-2xl [text-wrap:balance]">
                             <DecoderText text={t.missionTitle} />
                             </h2>
                         </Reveal>
                         <Reveal delay={0.4}>
-                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white/80 to-white/40 leading-[0.9] tracking-tight mt-2 pb-2">
+                            <h2 className="text-3xl md:text-6xl lg:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-white/80 to-white/40 leading-[0.9] tracking-tight mt-2 pb-2 [text-wrap:balance]">
                                 {t.mission}
                             </h2>
                         </Reveal>
@@ -190,7 +190,7 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                 </div>
             </Reveal>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
                 <MethodNode index={0} title={t.method1Title} desc={t.bullet1} />
                 <MethodNode index={1} title={t.method2Title} desc={t.bullet2} />
                 <MethodNode index={2} title={t.method3Title} desc={t.bullet3} />

@@ -95,7 +95,7 @@ const ProjectCard: React.FC<ProjectProps> = ({ title, category, image, link, yea
       <div className="flex justify-between items-start border-t border-white/10 pt-4 px-1">
         <div>
             <Reveal delay={index * 0.15 + 0.1}>
-                <h3 className="text-xl md:text-2xl font-serif text-white mb-1 group-hover:text-accent-lime transition-colors duration-300">
+                <h3 className="text-xl md:text-2xl font-serif text-white mb-1 group-hover:text-accent-lime transition-colors duration-300 [text-wrap:balance]">
                     {title}
                 </h3>
             </Reveal>
@@ -154,7 +154,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
                 <Quote size={28} className="mx-auto opacity-80" />
             </motion.div>
             
-            <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif">
+            <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif [text-wrap:balance]">
                 <MagicalText text={t.projectsQuote} delay={0.2} />
             </div>
       </div>
@@ -165,7 +165,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
                 <div className="inline-block px-3 py-1 border border-accent-lime/30 rounded-full text-accent-lime text-[9px] font-mono uppercase tracking-widest mb-4">
                     ( 02 — {t.selectedWorks} )
                 </div>
-                <h2 className="text-3xl md:text-6xl font-serif text-white">{t.projectsTitle}</h2>
+                <h2 className="text-3xl md:text-6xl font-serif text-white [text-wrap:balance]">{t.projectsTitle}</h2>
             </div>
          </Reveal>
          <Reveal delay={0.6}>
