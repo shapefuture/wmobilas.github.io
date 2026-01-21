@@ -49,8 +49,11 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
 
     const draw = () => {
       const velocity = smoothVelocity.get();
-      // SPEED X10: Base 0.05 + Scroll responsiveness 0.001
-      time += 0.05 + Math.abs(velocity) * 0.001;
+      
+      // FIX: Dampen the velocity contribution significantly to prevent "jumping"
+      // Base speed is slightly reduced (0.03) and scroll boost is capped (0.04 max)
+      const scrollBoost = Math.min(Math.abs(velocity) * 0.0001, 0.04);
+      time += 0.03 + scrollBoost;
       
       const w = window.innerWidth;
       const h = window.innerHeight * 0.7; // Taller render area for more vertical presence
@@ -112,6 +115,7 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
 
     return () => {
       window.removeEventListener('resize', resize);
+      // Fix: Correct variable name from animationId to animationFrameId
       cancelAnimationFrame(animationFrameId);
     };
   }, [active, smoothVelocity]);
