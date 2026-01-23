@@ -2,6 +2,8 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useVelocity, useSpring } from 'framer-motion';
 
+const MotionDiv = motion.div as any;
+
 export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { scrollY } = useScroll();
@@ -123,7 +125,7 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
   return (
     <AnimatePresence>
       {active && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -141,7 +143,7 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
             ref={canvasRef} 
             className="w-full h-full filter blur-[10px] saturate-[1.5] brightness-[1.2]"
           />
-        </motion.div>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

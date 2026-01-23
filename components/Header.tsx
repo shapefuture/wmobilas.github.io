@@ -3,6 +3,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Languages, Grip } from 'lucide-react';
 
+const MotionNav = motion.nav as any;
+const MotionDiv = motion.div as any;
+const MotionA = motion.a as any;
+const MotionButton = motion.button as any;
+
 interface HeaderProps {
   locale: string;
   setLocale: (e: React.MouseEvent) => void;
@@ -72,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ locale, setLocale, t }) => {
           MOBILE HEADER - BOTTOM NAVIGATION
           Refined sizing and glassmorphic transparency
       */}
-      <motion.nav 
+      <MotionNav 
         initial={false}
         animate={{ 
             y: isVisible ? 0 : 120, 
@@ -109,12 +114,12 @@ export const Header: React.FC<HeaderProps> = ({ locale, setLocale, t }) => {
             <Languages size={18} className="group-hover:scale-110 transition-transform" />
           </button>
         </div>
-      </motion.nav>
+      </MotionNav>
 
       {/* Fullscreen Navigation Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <MotionDiv 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -129,10 +134,10 @@ export const Header: React.FC<HeaderProps> = ({ locale, setLocale, t }) => {
             
             <nav className="flex flex-col gap-10 relative z-10 items-center text-center">
               {navLinks.map((link, i) => (
-                <motion.a 
+                <MotionA 
                   key={link.href}
                   href={link.href}
-                  onClick={(e) => scrollToSection(e, link.href)}
+                  onClick={(e: any) => scrollToSection(e, link.href)}
                   initial={{ opacity: 0, y: 40, rotateX: 30 }}
                   animate={{ opacity: 1, y: 0, rotateX: 0 }}
                   exit={{ opacity: 0, y: -40, rotateX: -30 }}
@@ -145,11 +150,11 @@ export const Header: React.FC<HeaderProps> = ({ locale, setLocale, t }) => {
                   <span className={`text-5xl font-serif italic transition-all duration-700 ${activeSection === link.href.slice(1) ? 'text-accent-lime scale-110' : 'text-white/30 group-hover:text-white'}`}>
                       {link.label}
                   </span>
-                </motion.a>
+                </MotionA>
               ))}
             </nav>
 
-            <motion.button 
+            <MotionButton 
                 initial={{ scale: 0, rotate: -90 }}
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 90 }}
@@ -157,8 +162,8 @@ export const Header: React.FC<HeaderProps> = ({ locale, setLocale, t }) => {
                 className="mt-20 w-14 h-14 rounded-full border border-white/20 flex items-center justify-center bg-white/5 active:bg-accent-lime group transition-all duration-500 relative z-50"
             >
                 <X size={24} className="text-white group-active:text-black transition-colors" />
-            </motion.button>
-          </motion.div>
+            </MotionButton>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </>

@@ -169,7 +169,7 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                 </form>
 
                 {/* Join text moved below the form - background removed as requested */}
-                <motion.div 
+                <MotionDiv 
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
@@ -178,7 +178,7 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                     <span className="text-[9px] md:text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">
                         {t?.newsletterJoin}
                     </span>
-                </motion.div>
+                </MotionDiv>
             </div>
         </MotionDiv>
       </div>

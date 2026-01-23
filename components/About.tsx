@@ -6,6 +6,8 @@ import { Zap, Activity, Globe, Quote } from 'lucide-react';
 import { Reveal } from './ui/Reveal';
 import { MagicalText } from './ui/MagicalText';
 
+const MotionDiv = motion.div as any;
+
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+";
 const DecoderText: React.FC<{ text: string; className?: string; start?: boolean }> = ({ text, className = "", start = true }) => {
   const [displayText, setDisplayText] = useState("");
@@ -62,7 +64,7 @@ const MethodNode: React.FC<{ title: string; desc: string; index: number }> = ({ 
             className="group relative h-full bg-white/5 border border-white/10 p-6 md:p-8 rounded-sm overflow-hidden hover:border-accent-lime/30 transition-colors duration-500"
             onMouseMove={handleMouseMove}
         >
-          <motion.div
+          <MotionDiv
               className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100"
               style={{
                   background: useMotionTemplate`
@@ -147,7 +149,7 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                 </div>
 
                 {/* QUOTE SECTION */}
-                <motion.div 
+                <MotionDiv 
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-10%" }}
@@ -156,13 +158,13 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                 >
                     <div className="absolute -left-[5px] top-0 w-2 h-2 bg-accent-lime rounded-full shadow-[0_0_10px_rgba(212,255,0,0.8)] animate-pulse" />
                     
-                    <motion.div
+                    <MotionDiv
                         animate={{ y: [-3, 3, -3], rotate: [-2, 2, -2] }}
                         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                         className="mb-3 md:mb-4 text-accent-lime opacity-80"
                     >
                         <Quote size={20} />
-                    </motion.div>
+                    </MotionDiv>
 
                     <div className="text-lg md:text-2xl text-white/90 font-light italic mb-4 leading-relaxed">
                         <MagicalText text={t.quote} delay={0.1} />
@@ -174,7 +176,7 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                             {t.quoteAuthor}
                         </p>
                     </div>
-                </motion.div>
+                </MotionDiv>
             </div>
         </div>
 

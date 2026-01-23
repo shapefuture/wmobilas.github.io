@@ -1,6 +1,9 @@
 
 import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
+
+const MotionDiv = motion.div as any;
+const MotionSpan = motion.span as any;
 
 interface MagicalTextProps {
   text: string;
@@ -11,7 +14,7 @@ interface MagicalTextProps {
 export const MagicalText: React.FC<MagicalTextProps> = ({ text, className = "", delay = 0 }) => {
   const words = text.split(" ");
 
-  const container: Variants = {
+  const container = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -22,7 +25,7 @@ export const MagicalText: React.FC<MagicalTextProps> = ({ text, className = "", 
     },
   };
 
-  const letter: Variants = {
+  const letter = {
     hidden: {
       opacity: 0,
       filter: "blur(12px)",
@@ -44,7 +47,7 @@ export const MagicalText: React.FC<MagicalTextProps> = ({ text, className = "", 
   };
 
   return (
-    <motion.div
+    <MotionDiv
       key={text}
       variants={container}
       initial="hidden"
@@ -57,18 +60,18 @@ export const MagicalText: React.FC<MagicalTextProps> = ({ text, className = "", 
         <React.Fragment key={wordIndex}>
           <span className="inline-block whitespace-nowrap align-top">
             {word.split("").map((char, charIndex) => (
-              <motion.span 
+              <MotionSpan 
                   key={`${wordIndex}-${charIndex}`} 
                   variants={letter}
                   className="inline-block origin-center will-change-transform"
               >
                 {char}
-              </motion.span>
+              </MotionSpan>
             ))}
           </span>
           <span className="inline-block whitespace-pre"> </span>
         </React.Fragment>
       ))}
-    </motion.div>
+    </MotionDiv>
   );
 };

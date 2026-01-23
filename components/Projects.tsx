@@ -6,6 +6,9 @@ import { Reveal } from './ui/Reveal';
 import { MagicalText } from './ui/MagicalText';
 import { ArrowUpRight, Quote } from 'lucide-react';
 
+const MotionDiv = motion.div as any;
+const MotionImg = motion.img as any;
+
 interface ProjectProps {
   title: string;
   category: string;
@@ -39,7 +42,7 @@ const ProjectCard: React.FC<ProjectProps> = ({ title, category, image, link, yea
           ref={ref}
           onMouseMove={handleMouseMove}
         >
-            <motion.div
+            <MotionDiv
                 className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100 z-30"
                 style={{
                     background: useMotionTemplate`
@@ -54,7 +57,7 @@ const ProjectCard: React.FC<ProjectProps> = ({ title, category, image, link, yea
 
             <div className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-10 overflow-hidden">
                 <div className="relative w-full h-full flex items-center justify-center">
-                    <motion.img 
+                    <MotionImg 
                         src={image} 
                         alt={title}
                         className="w-full h-auto max-h-full object-contain filter grayscale contrast-125 opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 ease-[0.16,1,0.3,1] drop-shadow-2xl"
@@ -62,7 +65,7 @@ const ProjectCard: React.FC<ProjectProps> = ({ title, category, image, link, yea
                             x: useTransform(mouseX, [0, 500], [5, -5]),
                             y: useTransform(mouseY, [0, 500], [5, -5]),
                             scale: 1
-                        }}
+                        } as any}
                         whileHover={{ scale: 1.05 }}
                     />
                 </div>
@@ -146,13 +149,13 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
   return (
     <Section id="projects" className="py-24 md:py-32 px-6">
       <div className="max-w-4xl mx-auto text-center mb-24 md:mb-32 relative">
-            <motion.div 
+            <MotionDiv 
                 className="block text-accent-lime mb-6 md:mb-8"
                 animate={{ y: [-5, 5, -5], rotate: [-3, 3, -3] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             >
                 <Quote size={28} className="mx-auto opacity-80" />
-            </motion.div>
+            </MotionDiv>
             
             <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif [text-wrap:balance]">
                 <MagicalText text={t.projectsQuote} delay={0.2} />

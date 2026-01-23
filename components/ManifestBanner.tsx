@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { 
   motion, 
@@ -6,8 +7,10 @@ import {
   useTransform 
 } from 'framer-motion';
 
+const MotionDiv = motion.div as any;
+
 const RhombusStar = () => (
-  <motion.div 
+  <MotionDiv 
     className="text-accent-lime mx-6 md:mx-10 relative flex items-center justify-center"
     animate={{ rotate: 360 }}
     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
@@ -19,7 +22,7 @@ const RhombusStar = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="relative z-10 w-3 h-3 md:w-5 md:h-5">
       <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" fill="currentColor"/>
     </svg>
-  </motion.div>
+  </MotionDiv>
 );
 
 export const ManifestBanner: React.FC<{ t?: any }> = ({ t }) => {
@@ -73,8 +76,8 @@ export const ManifestBanner: React.FC<{ t?: any }> = ({ t }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <motion.div 
-        style={{ x: xPercent }}
+      <MotionDiv 
+        style={{ x: xPercent } as any}
         className="flex items-center w-fit will-change-transform"
       >
         <div className="flex items-center shrink-0">
@@ -83,7 +86,7 @@ export const ManifestBanner: React.FC<{ t?: any }> = ({ t }) => {
         <div className="flex items-center shrink-0">
             {contentBlock}
         </div>
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 };

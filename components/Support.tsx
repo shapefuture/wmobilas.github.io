@@ -5,6 +5,8 @@ import { Section } from './ui/Section';
 import { Reveal } from './ui/Reveal';
 import { Heart, ArrowUpRight, Mail, Send, MessageCircle } from 'lucide-react';
 
+const MotionDiv = motion.div as any;
+
 const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ref = useRef<HTMLDivElement>(null);
     const position = { x: useMotionValue(0), y: useMotionValue(0) };
@@ -30,15 +32,15 @@ const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const springY = useSpring(y, { stiffness: 150, damping: 15, mass: 0.1 });
 
     return (
-        <motion.div 
+        <MotionDiv 
             ref={ref} 
             onMouseMove={handleMouse} 
             onMouseLeave={reset}
-            style={{ x: springX, y: springY }}
+            style={{ x: springX, y: springY } as any}
             className="flex items-center justify-center"
         >
             {children}
-        </motion.div>
+        </MotionDiv>
     );
 };
 
@@ -49,7 +51,7 @@ export const Support: React.FC<{ t: any }> = ({ t }) => {
     <Section className="py-24 md:py-32 relative overflow-hidden">
       {/* Premium Background FX - Heartbeat Resonance */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-         <motion.div 
+         <MotionDiv 
             animate={{ 
                 scale: [1, 1.2, 1],
                 opacity: [0.05, 0.1, 0.05],
@@ -65,7 +67,7 @@ export const Support: React.FC<{ t: any }> = ({ t }) => {
              <Reveal width="100%">
                  <div className="mb-6 flex justify-center">
                     <div className="relative">
-                        <motion.div
+                        <MotionDiv
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                             className="absolute inset-0 bg-accent-lime/20 blur-xl rounded-full"

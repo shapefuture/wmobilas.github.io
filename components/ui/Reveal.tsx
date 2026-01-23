@@ -2,6 +2,8 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, useInView, useAnimation } from 'framer-motion';
 
+const MotionDiv = motion.div as any;
+
 interface RevealProps {
   children: React.ReactNode;
   width?: "fit-content" | "100%";
@@ -38,7 +40,7 @@ export const Reveal: React.FC<RevealProps> = ({
       }} 
       className={`relative ${className}`}
     >
-      <motion.div
+      <MotionDiv
         variants={{
           hidden: { opacity: 0, y: 30, filter: `blur(${blurStrength}px)` },
           visible: { opacity: 1, y: 0, filter: "blur(0px)" },
@@ -49,7 +51,7 @@ export const Reveal: React.FC<RevealProps> = ({
         style={{ height: fullHeight ? "100%" : "auto" }}
       >
         {children}
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 };

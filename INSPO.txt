@@ -1,0 +1,685 @@
+
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import CloudSVGFilter from "./CloudSVGFilter";
+import CloudModel from "./CloudModel";
+import AtmosphereCanvas from "./AtmosphereCanvas";
+import { SlidersIcon, RefreshIcon, RotateCcwIcon, CodeIcon } from "./icons";
+import { SLIDERS_CONFIG, CLOUD_PRESETS, CloudState, CloudFormation, SliderConfig } from "../constants";
+
+const INITIAL_STATE: CloudState = {
+  formation: 'cumulus',
+  blurVal: 12,
+  spreadVal: 45,
+  numOctavesVal: 5,
+  baseFrequencyVal: 0.012,
+  scaleVal: 35,
+  skyVal: 50,
+  seedVal: 442,
+  windSpeed: 3,
+  boilingVal: 5,
+  controlsOpen: true
+};
+
+const lerpColor = (a: string, b: string, amount: number) => { 
+  const parse = (s: string) => [parseInt(s.slice(1,3),16), parseInt(s.slice(3,5),16), parseInt(s.slice(5,7),16)];
+  const [ar, ag, ab] = parse(a), [br, bg, bb] = parse(b);
+  const r = Math.round(ar + (br - ar) * amount), g = Math.round(ag + (bg - ag) * amount), bl = Math.round(ab + (bb - ab) * amount);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+};
+
+interface ParameterSliderProps {
+  config: SliderConfig;
+  value: number;
+  onChange: (v: number) => void;
+}
+
+const ParameterSlider: React.FC<ParameterSliderProps> = ({ config, value, onChange }) => {
+  const pct = ((value - config.min) / (config.max - config.min)) * 100;
+  return (
+    <div className="space-y-3 group select-none">
+      <div className="flex justify-between items-end px-1 border-b border-white/5 pb-1">
+        <label className="text-[10px] font-mono tracking-[0.2em] text-cyan-500/60 group-hover:text-cyan-400 transition-colors uppercase">
+          {config.label}
+        </label>
+        <span className="text-[11px] font-bold font-mono text-white/90 tabular-nums">
+          {config.step < 0.01 ? value.toFixed(4) : value.toFixed(1)}
+        </span>
+      </div>
+      <div className="relative h-6 flex items-center">
+        <input type="range" min={config.min} max={config.max} step={config.step} value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 z-20 cursor-ew-resize opacity-0"
+        />
+        <div className="absolute inset-y-[11px] left-0 w-full bg-white/10 rounded-full h-[2px]">
+          <div className="h-full bg-cyan-500 shadow-[0_0_12px_var(--accent)] transition-all duration-150" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="absolute top-1/2 w-4 h-1 bg-white shadow-[0_0_10px_#fff] -translate-y-1/2 pointer-events-none transition-transform" 
+          style={{ left: `calc(${pct}% - 8px)` }} 
+        />
+      </div>
+    </div>
+  );
+};
+
+const FormationSelector = ({ value, onChange }: { value: CloudFormation, onChange: (v: CloudFormation) => void }) => {
+  const formations: CloudFormation[] = ['cumulus', 'stratus', 'lenticular'];
+  return (
+    <div className="space-y-3">
+      <div className="text-[10px] font-mono tracking-[0.2em] text-cyan-500/60 uppercase border-b border-white/5 pb-1">Formation Type</div>
+      <div className="grid grid-cols-3 gap-2">
+        {formations.map(f => (
+          <button
+            key={f}
+            onClick={() => onChange(f)}
+            className={`py-2 px-1 text-[9px] uppercase font-bold tracking-wider rounded-sm border transition-all ${
+              value === f 
+              ? 'bg-cyan-500 text-black border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
+              : 'bg-white/5 text-white/40 border-transparent hover:border-white/20 hover:text-white'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TelemetryItem = ({ label, value, unit }: { label: string, value: string | number, unit: string }) => (
+  <div className="flex flex-col gap-0.5 border-l border-cyan-500/30 pl-3">
+    <span className="text-[8px] font-mono text-cyan-500/40 tracking-tighter uppercase">{label}</span>
+    <span className="text-[11px] font-mono font-bold text-white/80 tabular-nums">{value}<span className="text-[8px] ml-0.5 opacity-40">{unit}</span></span>
+  </div>
+);
+
+const CloudAppContainer: React.FC = () => {
+  const [params, setParams] = useState<CloudState>(INITIAL_STATE);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const timeRef = useRef(0);
+  const noiseOffsetRef = useRef(0);
+  const paramsRef = useRef(params);
+
+  useEffect(() => { paramsRef.current = params; }, [params]);
+
+  useEffect(() => {
+    let frame: number;
+    let lastTime = performance.now();
+    const tick = (now: number) => {
+      const dt = now - lastTime;
+      lastTime = now;
+      const p = paramsRef.current;
+      timeRef.current += dt * (0.0002 + p.windSpeed * 0.0003);
+      
+      // Calculate continuous linear offset for wind flow simulation
+      // Base drift + turbulence boiling effect contributing to flow
+      const flowRate = (p.windSpeed * 0.05) + (p.boilingVal * 0.1); 
+      // INCREASED SPEED: Multiplier changed from 0.005 to 0.025
+      noiseOffsetRef.current -= dt * flowRate * 0.025;
+
+      if (svgRef.current) {
+        // Animate Turbulence via Offset (One-Directional Morphing)
+        const offset = noiseOffsetRef.current;
+        svgRef.current.querySelector('#turb-base-offset')?.setAttribute('dx', `${offset}`);
+        // Shift detail layer slightly faster for internal parallax
+        svgRef.current.querySelector('#turb-detail-offset')?.setAttribute('dx', `${offset * 1.5}`);
+
+        // Update Rim Light Vector dynamically
+        const cycle = p.skyVal / 100;
+        const sunRad = cycle * Math.PI;
+        const offsetDist = 6;
+        const dx = -Math.cos(sunRad) * offsetDist;
+        const dy = Math.abs(Math.cos(sunRad)) * 3 + (1 - Math.sin(sunRad)) * offsetDist;
+        svgRef.current.querySelector('#rim-offset')?.setAttribute('dx', `${dx}`);
+        svgRef.current.querySelector('#rim-offset')?.setAttribute('dy', `${dy}`);
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const cloudColor = useMemo(() => {
+    const v = params.skyVal;
+    if (v < 25) return lerpColor("#0f172a", "#57534e", v / 25); 
+    if (v < 50) return lerpColor("#57534e", "#f8fafc", (v - 25) / 25); 
+    if (v < 75) return lerpColor("#f8fafc", "#78716c", (v - 50) / 25); 
+    return lerpColor("#78716c", "#0f172a", (v - 75) / 25); 
+  }, [params.skyVal]);
+
+  const restoreDefaults = () => {
+    setParams({ ...INITIAL_STATE, controlsOpen: params.controlsOpen });
+  };
+
+  const exportToCodepen = () => {
+    // 1. Snapshot Lighting Values
+    const cycle = params.skyVal / 100;
+    const azimuth = 20 + (cycle * 140);
+    const elevation = Math.max(10, Math.sin(cycle * Math.PI) * 75);
+    const sunRad = cycle * Math.PI;
+    const offsetDist = 6;
+    const dx = -Math.cos(sunRad) * offsetDist;
+    const dy = Math.abs(Math.cos(sunRad)) * 3 + (1 - Math.sin(sunRad)) * offsetDist;
+
+    // Snapshot Sun Color Logic
+    let sunR = 1, sunG = 1, sunB = 1;
+    if (cycle < 0.2 || cycle > 0.8) { sunR = 0.6; sunG = 0.7; sunB = 0.9; } 
+    else if (cycle < 0.35 || cycle > 0.65) { sunR = 1.0; sunG = 0.8; sunB = 0.6; }
+    
+    // Convert hex cloudColor to RGB
+    const hexToRgb = (hex: string) => {
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      return { r, g, b };
+    };
+    const shadowRGB = hexToRgb(cloudColor);
+    const lerp = (s: number, e: number, t: number) => s * (1 - t) + e * t;
+    const midMix = Math.sin(cycle * Math.PI);
+    const midRGB = {
+      r: lerp(shadowRGB.r, 0.95, midMix * 0.7),
+      g: lerp(shadowRGB.g, 0.95, midMix * 0.7),
+      b: lerp(shadowRGB.b, 1.0, midMix * 0.7)
+    };
+    
+    const tableR = `${shadowRGB.r} ${midRGB.r} ${sunR} ${sunR}`;
+    const tableG = `${shadowRGB.g} ${midRGB.g} ${sunG} ${sunG}`;
+    const tableB = `${shadowRGB.b} ${midRGB.b} ${sunB} ${sunB}`;
+
+    // 2. Generate Layer Shadows (Duplicate logic for standalone export)
+    const mulberry32 = (a: number) => () => {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const rand = mulberry32(params.seedVal);
+    
+    const generateShadows = (count: number, w: number, h: number, baseOp: number, scaleMult: number, blur: number, spread: number, algoName: CloudFormation) => {
+        const shadows = [];
+        for(let i=0; i<count; i++) {
+            let x = 0, y = 0;
+            if (algoName === 'cumulus') {
+                const r = Math.sqrt(i) * 3;
+                const theta = i * 2.39996;
+                x = r * Math.cos(theta) * (w/30);
+                y = r * Math.sin(theta) * (h/30) + (Math.sin(x*0.1) * 5);
+            } else if (algoName === 'stratus') {
+                x = (rand() - 0.5) * w * 2.5;
+                y = (rand() - 0.5) * (h * 0.3);
+            } else { // lenticular
+                const stackIndex = i % 3;
+                x = (rand() - 0.5) * w * 0.5;
+                y = (stackIndex * 3) + (rand() - 0.5) * 1.5;
+            }
+            
+            let scale = 0.5 + rand() * 1.5;
+            if (algoName === 'lenticular') {
+                const dist = Math.abs(x) / w;
+                scale = (1.5 - dist * 2) * (0.8 + rand() * 0.4);
+                scale = Math.max(0.2, scale);
+                y *= 0.5;
+            } else if (algoName === 'stratus') scale *= 1.2;
+
+            const finalScale = scale * scaleMult;
+            const b = blur * finalScale;
+            const s = spread * finalScale;
+            const op = baseOp + rand() * 0.1;
+            shadows.push(`${x}vmin ${y}vmin ${b}px ${s}px rgba(255,255,255,${op})`);
+        }
+        return shadows.join(',');
+    };
+
+    const formation = params.formation;
+    const backShadows = generateShadows(formation === 'lenticular' ? 15 : 35, 60, 15, 0.25, 0.7, params.blurVal * 0.8, params.spreadVal * 0.8, formation);
+    const midShadows = generateShadows(formation === 'lenticular' ? 20 : 50, 50, 20, 0.35, 1.0, params.blurVal, params.spreadVal, formation);
+    const frontShadows = generateShadows(formation === 'lenticular' ? 10 : 25, 40, 25, 0.45, 1.3, params.blurVal * 1.2, params.spreadVal * 1.1, formation);
+
+    const baseDur = 120 / (Math.max(0.1, params.windSpeed));
+
+    // 3. Construct Payload
+    const html = `
+<div class="sky-container">
+  <div class="cloud-layer back">
+     <div class="cloud-shape" style="box-shadow: ${backShadows}"></div>
+  </div>
+  <div class="cloud-layer mid">
+     <div class="cloud-shape" style="box-shadow: ${midShadows}"></div>
+  </div>
+  <div class="cloud-layer front">
+     <div class="cloud-shape" style="box-shadow: ${frontShadows}"></div>
+  </div>
+</div>
+
+<!-- SVG Filter Definition -->
+<svg width="0" height="0" style="position: absolute; visibility: hidden;">
+  <defs>
+    <filter id="cloud-filter" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="${params.baseFrequencyVal}" numOctaves="${params.numOctavesVal}" seed="${params.seedVal}" result="noiseBaseRaw" id="turb-body"/>
+      <feOffset in="noiseBaseRaw" dx="0" dy="0" result="noiseBase" id="turb-base-offset"/>
+
+      <feTurbulence type="fractalNoise" baseFrequency="${params.baseFrequencyVal * 2}" numOctaves="3" seed="${params.seedVal + 100}" result="noiseDetailRaw" id="turb-detail"/>
+      <feOffset in="noiseDetailRaw" dx="0" dy="0" result="noiseDetail" id="turb-detail-offset"/>
+      
+      <feComposite in="noiseBase" in2="noiseDetail" operator="arithmetic" k1="0" k2="0.6" k3="0.4" k4="0" result="noiseMix" />
+      <feColorMatrix in="noiseMix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 9 -4" result="noiseSculpted" />
+
+      <feDisplacementMap in="SourceGraphic" in2="noiseSculpted" scale="${params.scaleVal * 1.5}" xChannelSelector="R" yChannelSelector="A" result="cloudBody"/>
+      <feGaussianBlur in="cloudBody" stdDeviation="3" result="cloudSoft" />
+
+      <feDiffuseLighting in="cloudSoft" surfaceScale="${params.scaleVal / 2}" diffuseConstant="1.4" lighting-color="#ffffff" result="diffuseLight">
+        <feDistantLight azimuth="${azimuth}" elevation="${elevation}" />
+      </feDiffuseLighting>
+
+      <feOffset in="cloudSoft" dx="${dx}" dy="${dy}" result="offsetCloud" id="rim-offset" />
+      <feComposite in="cloudSoft" in2="offsetCloud" operator="out" result="rimMask" />
+      <feGaussianBlur in="rimMask" stdDeviation="2" result="rimBlurred" />
+      <feColorMatrix in="rimBlurred" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.8  0 0 0 3 0" result="rimLight" />
+
+      <feComponentTransfer in="diffuseLight" result="coloredBody">
+        <feFuncR type="table" tableValues="${tableR}" />
+        <feFuncG type="table" tableValues="${tableG}" />
+        <feFuncB type="table" tableValues="${tableB}" />
+      </feComponentTransfer>
+
+      <feComposite in="rimLight" in2="coloredBody" operator="screen" result="litCloud" />
+      <feComposite in="litCloud" in2="cloudBody" operator="in" result="finalCloud" />
+    </filter>
+  </defs>
+</svg>
+`;
+
+    const css = `
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% 100%, ${cloudColor} 0%, #000 100%);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sky-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.cloud-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+}
+
+.cloud-shape {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  filter: url(#cloud-filter);
+  transform: translate3d(-50%, -50%, 0);
+}
+
+.back { z-index: 1; animation: drift ${baseDur * 1.5}s infinite linear; }
+.back .cloud-shape { opacity: 0.8; }
+
+.mid { z-index: 2; animation: drift ${baseDur}s infinite linear; }
+
+.front { z-index: 3; animation: drift ${baseDur * 0.6}s infinite linear; }
+.front .cloud-shape { opacity: 0.9; }
+
+@keyframes drift {
+  0% { transform: translate3d(-120vw, -50%, 0); }
+  100% { transform: translate3d(120vw, -50%, 0); }
+}
+`;
+
+    const js = `
+// Flow Animation
+let time = 0;
+let offset = 0;
+const turbBase = document.querySelector('#turb-base-offset');
+const turbDetail = document.querySelector('#turb-detail-offset');
+const flowSpeed = ${(params.windSpeed * 0.05) + (params.boilingVal * 0.1)};
+
+function animate() {
+  time += 1;
+  // INCREASED SPEED: Multiplier changed from 0.05 to 0.25
+  offset -= 0.25 * flowSpeed; 
+  if(turbBase) turbBase.setAttribute('dx', offset);
+  if(turbDetail) turbDetail.setAttribute('dx', offset * 1.5);
+  requestAnimationFrame(animate);
+}
+animate();
+`;
+
+    const data = {
+      title: `Nephele Cloud: ${params.formation} v${params.seedVal}`,
+      description: "Procedural Cloud generated with Nephele VFX",
+      html: html,
+      css: css,
+      js: js
+    };
+
+    const form = document.createElement('form');
+    form.action = 'https://codepen.io/pen/define';
+    form.method = 'POST';
+    form.target = '_blank';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = JSON.stringify(data);
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  };
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-[#020202] text-slate-200">
+      <AtmosphereCanvas skyVal={params.skyVal} />
+      <CloudSVGFilter ref={svgRef} {...params} cloudColor={cloudColor} />
+
+      {/* Cloud Container with Parallax Layers */}
+      <CloudModel 
+        formation={params.formation}
+        blurVal={params.blurVal} 
+        spreadVal={params.spreadVal} 
+        seedVal={params.seedVal} 
+        cloudColor={cloudColor} 
+        windSpeed={params.windSpeed}
+      />
+
+      <header className="absolute top-0 left-0 w-full p-10 flex justify-between items-start z-50 pointer-events-none">
+        <div className="pointer-events-auto">
+          <div className="flex flex-col group">
+             <h1 className="text-3xl font-black tracking-[-0.05em] text-white leading-none font-oswald italic">NEPHELE <span className="text-cyan-500">III</span></h1>
+             <div className="h-px w-full bg-gradient-to-r from-cyan-500 to-transparent mt-1" />
+             <p className="text-[9px] text-white/40 font-mono tracking-[0.5em] uppercase mt-2">Atmospheric Simulation Node // 0x442</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2 pointer-events-auto">
+          <button 
+            onClick={restoreDefaults}
+            className="w-14 h-14 border border-white/5 bg-white/5 backdrop-blur-xl hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-400 text-white/60 transition-all flex items-center justify-center group relative overflow-hidden"
+            title="Restore Defaults"
+          >
+            <div className="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            <RotateCcwIcon size={20} className="group-active:-rotate-180 transition-transform duration-500" />
+          </button>
+          
+          <button 
+            onClick={exportToCodepen}
+            className="w-14 h-14 border border-white/5 bg-white/5 backdrop-blur-xl hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-400 text-white/60 transition-all flex items-center justify-center group relative overflow-hidden"
+            title="Export to CodePen"
+          >
+            <div className="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            <CodeIcon size={20} className="group-hover:scale-110 transition-transform" />
+          </button>
+
+          <button onClick={() => setParams(p => ({ ...p, seedVal: Math.floor(Math.random() * 99999) }))}
+            className="w-14 h-14 border border-white/5 bg-white/5 backdrop-blur-xl hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-400 text-white/60 transition-all flex items-center justify-center group relative overflow-hidden"
+            title="Randomize Seed"
+          >
+             <div className="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            <RefreshIcon size={20} className="group-active:rotate-90 transition-transform" />
+          </button>
+        </div>
+      </header>
+
+      <aside className={`glass-panel absolute top-0 right-0 h-full w-[var(--sidebar-w)] z-40 transition-transform duration-700 cubic-bezier(0.19, 1, 0.22, 1) ${params.controlsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="h-full flex flex-col pt-24">
+          <div className="px-8 mb-8">
+             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-sm">
+                <div className="text-[9px] font-mono text-cyan-500/60 mb-2 uppercase tracking-widest">Active Configuration</div>
+                <div className="text-lg font-bold text-white tracking-tight italic flex justify-between items-baseline">
+                  {params.formation.charAt(0).toUpperCase() + params.formation.slice(1)}
+                  <span className="text-[10px] opacity-50 font-normal">v{params.seedVal}</span>
+                </div>
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-8 space-y-12 custom-scrollbar pb-12">
+            
+            {/* Presets Grid */}
+            <section className="space-y-4">
+               <p className="text-[10px] font-mono text-white/30 tracking-[0.4em] uppercase text-center">Cloud Presets</p>
+               <div className="grid grid-cols-2 gap-3">
+                {CLOUD_PRESETS.map(preset => (
+                    <button
+                    key={preset.label}
+                    onClick={() => setParams(p => ({ ...p, ...preset.data } as CloudState))}
+                    className="px-3 py-4 border border-white/5 bg-white/5 text-[10px] font-bold text-white/60 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all uppercase tracking-wider text-center rounded-sm"
+                    >
+                    {preset.label}
+                    </button>
+                ))}
+                </div>
+            </section>
+
+            {/* Structure Group */}
+            <section className="space-y-8">
+                <h3 className="text-[10px] font-bold font-mono text-white/20 tracking-[0.6em] uppercase flex items-center gap-4">
+                   <div className="flex-1 h-px bg-white/5" /> STRUCTURE
+                </h3>
+                <FormationSelector 
+                  value={params.formation} 
+                  onChange={(f) => setParams(p => ({ ...p, formation: f }))} 
+                />
+                <div className="space-y-8">
+                  {SLIDERS_CONFIG.filter(s => s.category === 'Structure').map(conf => (
+                    <ParameterSlider key={conf.name} config={conf} value={params[conf.ownState] as number} 
+                      onChange={(v) => setParams(p => ({ ...p, [conf.ownState]: v }))} 
+                    />
+                  ))}
+                </div>
+            </section>
+
+            {/* Other Groups */}
+            {['Environment', 'Detail'].map(cat => (
+              <section key={cat} className="space-y-8">
+                <h3 className="text-[10px] font-bold font-mono text-white/20 tracking-[0.6em] uppercase flex items-center gap-4">
+                   <div className="flex-1 h-px bg-white/5" /> {cat}
+                </h3>
+                <div className="space-y-8">
+                  {SLIDERS_CONFIG.filter(s => s.category === cat).map(conf => (
+                    <ParameterSlider key={conf.name} config={conf} value={params[conf.ownState] as number} 
+                      onChange={(v) => setParams(p => ({ ...p, [conf.ownState]: v }))} 
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {!params.controlsOpen && (
+        <button onClick={() => setParams(p => ({ ...p, controlsOpen: true }))}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-50 p-6 bg-cyan-500 text-black hover:pr-10 transition-all"
+        >
+          <SlidersIcon size={24} />
+        </button>
+      )}
+
+      {/* FOOTER TELEMETRY HUD */}
+      <div className="absolute bottom-0 left-0 w-full p-10 z-50 pointer-events-none flex justify-between items-end">
+        <div className="flex gap-10">
+          <TelemetryItem label="Vapor Density" value={(params.scaleVal * 0.12).toFixed(2)} unit="kg/m³" />
+          <TelemetryItem label="Simulation Tick" value={Math.floor(timeRef.current * 100)} unit="ms" />
+          <TelemetryItem label="Formation Class" value={params.formation} unit="" />
+          <TelemetryItem label="Wind Vector" value={`${params.windSpeed}.0, ${ (params.windSpeed * 0.2).toFixed(1)}`} unit="m/s" />
+        </div>
+        
+        <div className="text-right">
+          <div className="text-[8px] font-mono text-white/20 tracking-widest mb-1 uppercase">Hardware Accel: Enabled</div>
+          <div className="text-[14px] font-mono font-bold text-white/40 tracking-tighter">RENDER_NODE_G_04</div>
+        </div>
+      </div>
+      
+      <div className="absolute top-1/2 left-0 w-px h-[20vh] -translate-y-1/2 bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent" />
+      <div className="absolute top-1/2 right-0 w-px h-[20vh] -translate-y-1/2 bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent" />
+    </div>
+  );
+};
+
+export default CloudAppContainer;
+
+import React, { forwardRef } from "react";
+
+interface CloudSVGFilterProps {
+  scaleVal: number;
+  numOctavesVal: number;
+  baseFrequencyVal: number;
+  seedVal: number;
+  skyVal: number;
+  cloudColor: string;
+}
+
+const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+
+const hexToRgb = (hex: string) => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return { r, g, b };
+};
+
+const CloudSVGFilter = forwardRef<SVGSVGElement, CloudSVGFilterProps>((props, ref) => {
+  const { scaleVal, numOctavesVal, baseFrequencyVal, seedVal, skyVal, cloudColor } = props;
+
+  const cycle = skyVal / 100;
+  // Azimuth: 0 (East) -> 1 (West) approx
+  const azimuth = 20 + (cycle * 140); 
+  const elevation = Math.max(10, Math.sin(cycle * Math.PI) * 75);
+
+  // Calculate Sun Vector for Rim Light Offset
+  // When sun is high (0.5), we want offset Y to be positive (shadow down), so rim is top.
+  // We offset the "blocker" away from the light.
+  const sunRad = cycle * Math.PI;
+  const offsetDist = 6;
+  const dx = -Math.cos(sunRad) * offsetDist; // Move opposite to sun X
+  const dy = Math.abs(Math.cos(sunRad)) * 3 + (1 - Math.sin(sunRad)) * offsetDist; 
+
+  let sunR = 1, sunG = 1, sunB = 1;
+  // Dynamic Sun Color
+  if (cycle < 0.2 || cycle > 0.8) {
+      // Deep Night/Twilight
+      sunR = 0.6; sunG = 0.7; sunB = 0.9; 
+  } else if (cycle < 0.35 || cycle > 0.65) {
+      // Golden Hour
+      sunR = 1.0; sunG = 0.8; sunB = 0.6;
+  } else {
+      // Noon
+      sunR = 1.0; sunG = 1.0; sunB = 1.0;
+  }
+
+  const shadowRGB = hexToRgb(cloudColor);
+  
+  // Midtone Calculation (Translucency)
+  const midMix = Math.sin(cycle * Math.PI);
+  const midRGB = {
+      r: lerp(shadowRGB.r, 0.95, midMix * 0.7),
+      g: lerp(shadowRGB.g, 0.95, midMix * 0.7),
+      b: lerp(shadowRGB.b, 1.0, midMix * 0.7)
+  };
+
+  // Color Tables for ComponentTransfer
+  // Map standard lighting 0-1 to [Shadow -> Mid -> Highlight]
+  const tableR = `${shadowRGB.r} ${midRGB.r} ${sunR} ${sunR}`;
+  const tableG = `${shadowRGB.g} ${midRGB.g} ${sunG} ${sunG}`;
+  const tableB = `${shadowRGB.b} ${midRGB.b} ${sunB} ${sunB}`;
+
+  return (
+    <svg width="0" height="0" className="absolute invisible" ref={ref}>
+      <defs>
+        <filter id="cloud-filter" x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
+          
+          {/* 1. Fractal Noise Generation */}
+          <feTurbulence 
+            type="fractalNoise" 
+            baseFrequency={baseFrequencyVal} 
+            numOctaves={numOctavesVal} 
+            seed={seedVal} 
+            result="noiseBaseRaw" 
+            id="turb-body"
+          />
+          {/* 1a. One-Directional Flow Offset (Base) */}
+          <feOffset in="noiseBaseRaw" dx="0" dy="0" result="noiseBase" id="turb-base-offset" />
+
+          <feTurbulence 
+            type="fractalNoise" 
+            baseFrequency={baseFrequencyVal * 2} 
+            numOctaves={3} 
+            seed={seedVal + 100} 
+            result="noiseDetailRaw" 
+            id="turb-detail"
+          />
+          {/* 1b. One-Directional Flow Offset (Detail) */}
+          <feOffset in="noiseDetailRaw" dx="0" dy="0" result="noiseDetail" id="turb-detail-offset" />
+          
+          {/* 2. Noise Composite & Sculpting */}
+          <feComposite in="noiseBase" in2="noiseDetail" operator="arithmetic" k1="0" k2="0.6" k3="0.4" k4="0" result="noiseMix" />
+          <feColorMatrix 
+            in="noiseMix" 
+            type="matrix" 
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 9 -4" 
+            result="noiseSculpted" 
+          />
+
+          {/* 3. Geometry Displacement */}
+          <feDisplacementMap 
+            in="SourceGraphic" 
+            in2="noiseSculpted" 
+            scale={scaleVal * 1.5} 
+            xChannelSelector="R" 
+            yChannelSelector="A" 
+            result="cloudBody"
+          />
+
+          {/* 4. Softening */}
+          <feGaussianBlur in="cloudBody" stdDeviation="3" result="cloudSoft" />
+
+          {/* 5. Main Volumetric Lighting */}
+          <feDiffuseLighting 
+            in="cloudSoft" 
+            surfaceScale={scaleVal / 2} 
+            diffuseConstant={1.4} 
+            lightingColor="#ffffff" 
+            result="diffuseLight"
+          >
+            <feDistantLight azimuth={azimuth} elevation={elevation} />
+          </feDiffuseLighting>
+
+          {/* 6. Rim Lighting Technique (The "Silver Lining") */}
+          {/* Create a mask by offsetting the alpha channel away from the sun */}
+          <feOffset in="cloudSoft" dx={dx} dy={dy} result="offsetCloud" id="rim-offset" />
+          {/* Subtract the offset mask from the original to leave only the edge facing the sun */}
+          <feComposite in="cloudSoft" in2="offsetCloud" operator="out" result="rimMask" />
+          {/* Blur the rim to make it glow */}
+          <feGaussianBlur in="rimMask" stdDeviation="2" result="rimBlurred" />
+          {/* Boost rim intensity */}
+          <feColorMatrix in="rimBlurred" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.8  0 0 0 3 0" result="rimLight" />
+
+          {/* 7. Color Mapping (Subsurface Scattering) */}
+          <feComponentTransfer in="diffuseLight" result="coloredBody">
+            <feFuncR type="table" tableValues={tableR} />
+            <feFuncG type="table" tableValues={tableG} />
+            <feFuncB type="table" tableValues={tableB} />
+          </feComponentTransfer>
+
+          {/* 8. Compositing Rim Light onto Body */}
+          <feComposite in="rimLight" in2="coloredBody" operator="screen" result="litCloud" />
+
+          {/* 9. Final Alpha Masking */}
+          <feComposite in="litCloud" in2="cloudBody" operator="in" result="finalCloud" />
+          
+        </filter>
+      </defs>
+    </svg>
+  );
+});
+
+export default CloudSVGFilter;

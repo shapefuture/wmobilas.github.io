@@ -3,6 +3,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
 
+const MotionDiv = motion.div as any;
+const MotionButton = motion.button as any;
+
 export const ScrollToTop: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -55,19 +58,19 @@ export const ScrollToTop: React.FC = () => {
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <MotionDiv
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.5, y: 20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="fixed bottom-32 left-6 md:left-10 z-[80] hidden md:block"
         >
-            <motion.button
+            <MotionButton
                 ref={ref}
                 onClick={scrollToTop}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={reset}
-                style={{ x: springX, y: springY }}
+                style={{ x: springX, y: springY } as any}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group hover:border-accent-lime/50 transition-colors duration-300"
@@ -76,8 +79,8 @@ export const ScrollToTop: React.FC = () => {
                     className="text-white/60 group-hover:text-accent-lime transition-colors duration-300" 
                     size={24} 
                 />
-            </motion.button>
-        </motion.div>
+            </MotionButton>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

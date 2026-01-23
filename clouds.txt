@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nephele | Siggraph L5 Engine</title>
+    <style>
+        :root {
+            --accent: #06b6d4;
+        }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background-color: #000;
+        }
+
+        #skyCanvas { 
+            display: block; 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            z-index: 0; 
+        }
+
+        #viewport { 
+            position: absolute; 
+            inset: 0; 
+            z-index: 10; 
+            overflow: hidden; 
+            pointer-events: none; 
+        }
+
+        .cloud-entity {
+            position: absolute;
+            width: 1px; height: 1px; /* Non-zero size for filter context */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 2.5s ease-out;
+        }
+
+        .cloud-puff {
+            position: absolute;
+            border-radius: 50%;
+            transform: translate3d(0,0,0);
+            /* Soft edges for better blending before filter */
+            filter: blur(2px); 
+        }
+
+        /* Post Processing */
+        .grain-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.035;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        svg#svg-store { 
+            position: absolute; 
+            top: 0; left: 0; width: 0; height: 0; 
+            overflow: hidden; pointer-events: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="skyCanvas"></canvas>
+    <div id="viewport"></div>
+    <div class="grain-overlay"></div>
+    
+    <!-- Filter Store -->
+    <svg id="svg-store" xmlns="http://www.w3.org/2000/svg">
+        <defs id="filter-defs"></defs>
+    </svg>
+
+    <script>
+        /**
+         * NEPHELE | PRO CLOUD ENGINE (SIGGRAPH L5)
+         * v2.1 - Corrected Aspect Ratios & Noise Isotropy
+         */
+
+        const STATE = {
+            skyVal: 50,          
+            windSpeed: 2.0,      
+            
+            // --- GLOBAL TUNING ---
+            displacement: 70,    
+            density: 40,         
+            morph: 8,           
+            softness: 25,       
+            complexity: 10,      
+            frequency: 0.012,    
+            
+            count: 8             
+        };
+
+        // --- COLOR ENGINE ---
+        const lerpColor = (a, b, amount) => { 
+            const parse = (s) => [parseInt(s.slice(1,3),16), parseInt(s.slice(3,5),16), parseInt(s.slice(5,7),16)];
+            const [ar, ag, ab] = parse(a), [br, bg, bb] = parse(b);
+            const r = Math.round(ar + (br - ar) * amount);
+            const g = Math.round(ag + (bg - ag) * amount);
+            const bl = Math.round(ab + (bb - ab) * amount);
+            return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+        };
+
+        const getCloudColor = (v) => {
+            if (v < 25) return lerpColor("#3b4554", "#8ba0b8", v / 25);
+            if (v < 50) return lerpColor("#8ba0b8", "#f4f7fa", (v - 25) / 25);
+            if (v < 75) return "#f4f7fa";
+            return lerpColor("#f4f7fa", "#ffd6d6", (v - 75) / 25);
+        };
+
+        // --- WEBGL ATMOSPHERE ---
+        const initSky = () => {
+            const canvas = document.getElementById('skyCanvas');
+            const gl = canvas.getContext('webgl');
+            if (!gl) return;
+
+            const vs = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+            const fs = `
+                precision highp float;
+                uniform float uTime; uniform vec2 uRes; uniform float uSky;
+                const float PI = 3.14159265359;
+                
+                float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+                
+                void main(){
+                    vec2 uv = gl_FragCoord.xy / uRes.xy;
+                    float aspect = uRes.x / uRes.y;
+                    float cycle = uSky / 100.0;
+                    
+                    float sunY = sin(cycle * PI) * 1.3 - 0.3;
+                    float sunX = (cycle - 0.5) * 3.5;
+                    vec2 sunPos = vec2(sunX, sunY);
+                    
+                    vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
+                    vec2 sv = p - vec2(sunPos.x * (aspect/1.5), sunPos.y);
+                    float d = length(sv);
+                    
+                    // Palette
+                    vec3 deepSpace = vec3(0.01, 0.02, 0.05);
+                    vec3 horizonNight = vec3(0.05, 0.08, 0.15);
+                    vec3 zenithDay = vec3(0.15, 0.45, 0.85);
+                    vec3 horizonDay = vec3(0.6, 0.8, 0.95);
+                    vec3 sunsetOrange = vec3(0.95, 0.55, 0.3);
+                    vec3 sunsetPurple = vec3(0.4, 0.2, 0.5);
+
+                    float dayIntensity = smoothstep(-0.2, 0.3, sunY);
+                    float sunsetIntensity = smoothstep(-0.2, 0.2, sunY) * (1.0 - smoothstep(0.2, 0.5, sunY));
+                    
+                    vec3 daySky = mix(horizonDay, zenithDay, pow(uv.y, 0.7));
+                    vec3 nightSky = mix(horizonNight, deepSpace, uv.y);
+                    
+                    vec3 sky = mix(nightSky, daySky, dayIntensity);
+                    
+                    sky = mix(sky, sunsetOrange, sunsetIntensity * (1.0 - uv.y) * 0.8);
+                    sky = mix(sky, sunsetPurple, sunsetIntensity * pow(uv.y, 0.5) * 0.5);
+
+                    float sunGlow = 0.0;
+                    if (sunY > -0.3) {
+                       vec3 sunColor = mix(vec3(1.0, 0.5, 0.2), vec3(1.0, 1.0, 0.95), smoothstep(-0.1, 0.3, sunY));
+                       sunGlow = 1.0 / (1.0 + d * d * 50.0) * 0.6;
+                       sunGlow += exp(-d * 12.0) * 0.4;
+                       sky += sunColor * sunGlow * smoothstep(-0.3, 0.0, sunY);
+                    }
+                    
+                    sky += (hash(uv * uTime) - 0.5) * 0.015;
+                    gl_FragColor = vec4(sky, 1.0);
+                }
+            `;
+
+            const prog = gl.createProgram();
+            const cs = (ty, src) => {
+                const s = gl.createShader(ty);
+                gl.shaderSource(s, src); gl.compileShader(s); return s;
+            };
+            gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+            gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+            gl.linkProgram(prog); gl.useProgram(prog);
+
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+            const pos = gl.getAttribLocation(prog, "p");
+            gl.enableVertexAttribArray(pos);
+            gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+            const uT = gl.getUniformLocation(prog, "uTime");
+            const uR = gl.getUniformLocation(prog, "uRes");
+            const uS = gl.getUniformLocation(prog, "uSky");
+
+            const render = (time) => {
+                if(canvas.width !== window.innerWidth || canvas.height !== window.innerHeight){
+                    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+                    gl.viewport(0,0,canvas.width,canvas.height);
+                }
+                gl.uniform1f(uT, time);
+                gl.uniform2f(uR, canvas.width, canvas.height);
+                gl.uniform1f(uS, STATE.skyVal);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                requestAnimationFrame(render);
+            };
+            requestAnimationFrame(render);
+        };
+
+        // --- CLOUD ENGINE ---
+        class Cloud {
+            constructor(id) {
+                this.id = id;
+                this.initParams();
+                this.createElements();
+            }
+
+            initParams(startX) {
+                // Weighted Probability for Cloud Types
+                const rand = Math.random();
+                if (rand < 0.45) this.type = 'cumulus';       // 45% Puffy
+                else if (rand < 0.75) this.type = 'stratus';  // 30% Flat
+                else this.type = 'cirrus';                    // 25% Wispy
+
+                this.x = startX ?? (Math.random() * 160 - 40);
+                
+                // Altitude & Scale correlation (Parallax)
+                // We've reduced the 'noiseAspect' and 'stretch' factors significantly
+                // to prevent the "stretched texture" look.
+                
+                if (this.type === 'cirrus') {
+                    this.y = 5 + Math.random() * 20;
+                    this.scale = 0.4 + Math.random() * 0.4;
+                    this.opacity = 0.4 + Math.random() * 0.3;
+                    this.stretch = 1.0 + Math.random() * 0.3; // Reduced stretch
+                    this.noiseAspect = 1.2; // Nearly isotropic, just slight wind
+                } else if (this.type === 'stratus') {
+                    this.y = 40 + Math.random() * 40;
+                    this.scale = 0.9 + Math.random() * 0.9;
+                    this.opacity = 0.65 + Math.random() * 0.3;
+                    this.stretch = 1.5 + Math.random() * 0.5; // Reduced geometry stretch
+                    this.noiseAspect = 1.3; // Reduced noise stretch
+                } else {
+                    // Cumulus
+                    this.y = 20 + Math.random() * 50;
+                    this.scale = 0.6 + Math.random() * 1.0;
+                    this.opacity = 0.85 + Math.random() * 0.15;
+                    this.stretch = 1.0 + Math.random() * 0.1; // Round
+                    this.noiseAspect = 1.0; // Perfectly isotropic
+                }
+
+                this.rotation = Math.random() * 4 - 2; 
+                this.seed = Math.floor(Math.random() * 10000);
+                this.speedFactor = this.scale * (0.2 + Math.random() * 0.3);
+            }
+
+            createElements() {
+                const filterId = `f-${this.id}`;
+                const turbId = `t-${this.id}`;
+                const dispId = `d-${this.id}`;
+                
+                // Adaptive Frequency: Larger clouds need lower frequency to avoid tiling artifacts
+                const adaptFreq = STATE.frequency / (this.scale * 0.8);
+
+                // Use a large fixed-size filter region in UserSpace to prevent clipping or aspect issues
+                // since the .cloud-entity has 1px size.
+                const filterHTML = `
+                    <filter id="${filterId}" x="-200vmin" y="-200vmin" width="400vmin" height="400vmin" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse">
+                        <feTurbulence 
+                            id="${turbId}"
+                            type="fractalNoise" 
+                            baseFrequency="${adaptFreq} ${adaptFreq * this.noiseAspect}" 
+                            numOctaves="${STATE.complexity}" 
+                            seed="${this.seed}" 
+                            stitchTiles="noStitch" 
+                            result="noise"
+                        />
+                        <feColorMatrix 
+                            in="noise" 
+                            type="matrix" 
+                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.5 0" 
+                            result="damped"
+                        />
+                        <feGaussianBlur in="damped" stdDeviation="2.5" result="smoothed" />
+                        <feDisplacementMap 
+                            id="${dispId}"
+                            in2="smoothed" 
+                            in="SourceGraphic" 
+                            scale="${STATE.displacement * this.scale}" 
+                            xChannelSelector="R" 
+                            yChannelSelector="G" 
+                        />
+                    </filter>
+                `;
+
+                document.getElementById('filter-defs').insertAdjacentHTML('beforeend', filterHTML);
+                this.turb = document.getElementById(turbId);
+                this.disp = document.getElementById(dispId);
+
+                this.el = document.createElement('div');
+                this.el.className = 'cloud-entity';
+                this.el.style.filter = `url(#${filterId})`;
+                
+                this.puffs = [];
+                
+                // --- PROCEDURAL GEOMETRY GENERATOR ---
+                if (this.type === 'cumulus') {
+                    // HEAP GENERATION
+                    const puffCount = 5 + Math.floor(Math.random() * 4);
+                    const baseR = 15 * this.scale;
+                    
+                    this.addPuff(0, 0, baseR * 1.2, baseR, 1.0);
+                    
+                    for(let i=0; i<puffCount; i++) {
+                        const angle = (i / puffCount) * Math.PI * 2;
+                        const dist = baseR * 0.6;
+                        let py = Math.sin(angle) * dist * 0.6; 
+                        if (py > 0) py *= 0.3; // Flatten bottom
+                        
+                        const px = Math.cos(angle) * dist * this.stretch;
+                        const pScale = 0.6 + Math.random() * 0.5;
+                        this.addPuff(px, py, baseR * pScale, baseR * pScale, 1.0 + Math.random()*0.2);
+                    }
+                    this.addPuff(baseR * 0.2, -baseR * 0.5, baseR * 0.7, baseR * 0.6, 1.0);
+
+                } else if (this.type === 'stratus') {
+                    // CHAIN GENERATION
+                    const len = 3 + Math.floor(Math.random() * 4);
+                    const width = 25 * this.scale;
+                    const step = width / len;
+                    
+                    for(let i=0; i<len; i++) {
+                        let px = (i - len/2) * step;
+                        let py = (Math.random() - 0.5) * 5 * this.scale;
+                        let w = (20 + Math.random() * 10) * this.scale;
+                        let h = (8 + Math.random() * 6) * this.scale;
+                        this.addPuff(px, py, w, h, 1.2 + Math.random() * 0.5); // Less extreme aspect
+                    }
+
+                } else if (this.type === 'cirrus') {
+                    // WISPY GENERATION
+                    const strands = 2 + Math.floor(Math.random() * 3);
+                    for(let i=0; i<strands; i++) {
+                        let px = (Math.random() - 0.5) * 30 * this.scale;
+                        let py = (Math.random() - 0.5) * 10 * this.scale;
+                        let w = (20 + Math.random() * 20) * this.scale;
+                        let h = (4 + Math.random() * 4) * this.scale;
+                        this.addPuff(px, py, w, h, 1.5); // Less extreme
+                    }
+                }
+
+                document.getElementById('viewport').appendChild(this.el);
+            }
+
+            addPuff(x, y, w, h, aspect) {
+                const puff = document.createElement('div');
+                puff.className = 'cloud-puff';
+                
+                const r1 = 40 + Math.random() * 20;
+                const r2 = 40 + Math.random() * 20;
+                const r3 = 40 + Math.random() * 20;
+                const r4 = 40 + Math.random() * 20;
+                
+                puff.style.width = `${w * aspect}vmin`;
+                puff.style.height = `${h}vmin`;
+                puff.style.left = `${x}vmin`;
+                puff.style.top = `${y}vmin`;
+                puff.style.borderRadius = `${r1}% ${r2}% ${r3}% ${r4}% / ${r3}% ${r1}% ${r4}% ${r2}%`;
+                
+                this.el.appendChild(puff);
+                this.puffs.push(puff);
+            }
+
+            update(dt, simTime, color) {
+                this.x += STATE.windSpeed * this.speedFactor * dt;
+                
+                if (this.x > 130) {
+                    this.initParams(-50);
+                    this.el.remove();
+                    this.createElements();
+                }
+
+                // Noise drift
+                const noiseSpeed = this.type === 'cirrus' ? 0.08 : 0.02;
+                const adaptFreq = STATE.frequency / (this.scale * 0.8);
+                
+                const freqX = adaptFreq + Math.sin(simTime * noiseSpeed) * 0.001;
+                const freqY = adaptFreq * this.noiseAspect;
+                
+                if(this.turb) this.turb.setAttribute("baseFrequency", `${freqX} ${freqY}`);
+                if(this.disp) this.disp.setAttribute("scale", STATE.displacement * this.scale);
+
+                this.el.style.left = `${this.x}%`;
+                this.el.style.top = `${this.y}%`;
+                this.el.style.zIndex = Math.floor(this.scale * 100);
+                this.el.style.opacity = this.opacity;
+                this.el.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
+
+                const boxShadow = `0 0 ${STATE.softness * this.scale}px ${STATE.density * this.scale}px ${color}`;
+                this.puffs.forEach(p => {
+                    p.style.backgroundColor = color;
+                    p.style.boxShadow = boxShadow;
+                });
+            }
+        }
+
+        // --- SYSTEM BOOT ---
+        const clouds = [];
+        let lastTime = 0, simTime = 0;
+
+        const loop = (now) => {
+            const dt = (now - lastTime) / 1000; lastTime = now;
+            simTime += dt * (STATE.morph * 0.1); 
+
+            const highlight = getCloudColor(STATE.skyVal);
+            clouds.forEach(c => c.update(dt, simTime, highlight));
+            requestAnimationFrame(loop);
+        };
+
+        window.onload = () => {
+            initSky();
+            for(let i=0; i<STATE.count; i++) clouds.push(new Cloud(i));
+            requestAnimationFrame(loop);
+        };
+    </script>
+</body>
+</html>

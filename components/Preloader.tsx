@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const MotionDiv = motion.div as any;
+
 interface PreloaderProps {
   progress: number;
   onComplete: () => void;
@@ -191,7 +193,7 @@ export const Preloader: React.FC<PreloaderProps> = ({ progress, onComplete, t })
   }, []);
 
   return (
-    <motion.div
+    <MotionDiv
       ref={containerRef}
       initial={{ opacity: 1 }}
       exit={{ 
@@ -201,6 +203,6 @@ export const Preloader: React.FC<PreloaderProps> = ({ progress, onComplete, t })
       className="fixed inset-0 z-[100] bg-[#050505] overflow-hidden flex flex-col items-center justify-center cursor-wait"
     >
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-    </motion.div>
+    </MotionDiv>
   );
 };

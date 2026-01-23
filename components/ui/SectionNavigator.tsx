@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const MotionDiv = motion.div as any;
+const MotionSpan = motion.span as any;
+
 interface Section {
   id: string;
   label: string;
@@ -49,7 +52,7 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
   return (
     <AnimatePresence>
       {hasScrolledOnce && (
-        <motion.div 
+        <MotionDiv 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
@@ -66,7 +69,7 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
                     {/* Label - visible on hover or scroll */}
                     <AnimatePresence>
                     {(isScrolling || isActive) && (
-                        <motion.span
+                        <MotionSpan
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
@@ -75,13 +78,13 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
                         }`}
                         >
                         {section.label}
-                        </motion.span>
+                        </MotionSpan>
                     )}
                     </AnimatePresence>
 
                     {/* Line Indicator */}
                     <div className="relative h-12 w-4 flex items-center justify-end">
-                    <motion.div
+                    <MotionDiv
                         animate={{
                         height: isActive ? '32px' : '12px',
                         width: isActive ? '3px' : '1px',
@@ -91,7 +94,7 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
                     />
                     {/* Active Pulse Glow */}
                     {isActive && (
-                        <motion.div
+                        <MotionDiv
                         layoutId="nav-glow"
                         className="absolute right-0 w-[1px] h-full bg-accent-lime blur-[4px] opacity-30"
                         />
@@ -100,7 +103,7 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
                 </button>
                 );
             })}
-        </motion.div>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

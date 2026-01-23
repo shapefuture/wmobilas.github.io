@@ -5,6 +5,8 @@ import { Section } from './ui/Section';
 import { Reveal } from './ui/Reveal';
 import { ArrowUpRight, Radio } from 'lucide-react';
 
+const MotionDiv = motion.div as any;
+
 const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ref = useRef<HTMLDivElement>(null);
     const position = { x: useMotionValue(0), y: useMotionValue(0) };
@@ -30,15 +32,15 @@ const Magnetic: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const springY = useSpring(y, { stiffness: 150, damping: 15, mass: 0.1 });
 
     return (
-        <motion.div 
+        <MotionDiv 
             ref={ref} 
             onMouseMove={handleMouse} 
             onMouseLeave={reset}
-            style={{ x: springX, y: springY }}
+            style={{ x: springX, y: springY } as any}
             className="flex items-center justify-center"
         >
             {children}
-        </motion.div>
+        </MotionDiv>
     );
 };
 

@@ -26,6 +26,8 @@ const ASSETS = [
   "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/UNI.jpg"
 ];
 
+const MotionDiv = motion.div as any;
+
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -134,13 +136,13 @@ const App: React.FC = () => {
       
       <AnimatePresence>
         {!loading && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 2.5, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
           >
             <SectionNavigator sections={navSections} />
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
       

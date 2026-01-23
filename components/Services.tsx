@@ -6,6 +6,8 @@ import { Eye, Compass, Activity, Fingerprint, Cpu, Lightbulb, Quote } from 'luci
 import { Reveal } from './ui/Reveal';
 import { MagicalText } from './ui/MagicalText';
 
+const MotionDiv = motion.div as any;
+
 const ServiceCard: React.FC<{ 
     title: string; 
     description: string; 
@@ -333,7 +335,7 @@ const ServiceCard: React.FC<{
     }, [isHovered, index]);
 
     return (
-        <motion.div
+        <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.5 }}
@@ -358,7 +360,7 @@ const ServiceCard: React.FC<{
                 </p>
             </div>
             <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-accent-lime group-hover:w-full transition-all duration-500 ease-out" />
-        </motion.div>
+        </MotionDiv>
     );
 };
 
@@ -366,13 +368,13 @@ export const Services: React.FC<{ t: any }> = ({ t }) => {
   return (
     <Section id="services" className="py-24 md:py-32 px-6">
         <div className="max-w-4xl mx-auto text-center mb-16 md:mb-24 relative">
-             <motion.div 
+             <MotionDiv 
                 className="block text-accent-lime mb-6"
                 animate={{ y: [-5, 5, -5], rotate: [-3, 3, -3] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             >
                 <Quote size={28} className="mx-auto opacity-80" />
-            </motion.div>
+            </MotionDiv>
             <div className="text-xl md:text-4xl font-light leading-relaxed text-white italic font-serif [text-wrap:balance]">
                 <MagicalText text={t.servicesQuote} delay={0.2} />
             </div>
