@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useId, useState } from 'react';
 
 /**
  * NEPHELE | SIGGRAPH L10 VOLUMETRIC ENGINE
- * v5.4 - "Solid Core" Architecture
+ * v5.5 - "Atomic Symmetry" Patch
  * 
- * PROBLEM: Previous "Soft" fix made clouds look like vapor/smoke.
- * SOLUTION:
- * 1. DENSITY: Tightened the DOM radial gradients. Clouds need a solid white core (Mie scattering), not a linear fade.
- * 2. STRUCTURE: Increased feColorMatrix contrast (6 -1.5). This creates "clumps" instead of "wisps" while avoiding binary tearing.
- * 3. DETAIL: Reduced blur from ~6px to ~2px. Definition comes from sharp noise, not blur.
- * 4. PERF: Kept Octaves at 3 for 60FPS lock.
+ * FIX: "Jumping Seed" / Loop Discontinuity
+ * CAUSE: The infinite loop relies on duplicate clouds (Original & Offset Clone). 
+ *        Previously, these were generated via two separate calls to a randomized function,
+ *        resulting in different "puff" distributions. When the loop reset, the cloud would shapeshift.
+ * SOLUTION: Generate the DOM structure ONCE, then use `cloneNode(true)` for the offset instance.
+ *           This guarantees perfect visual symmetry at the loop boundary.
  */
 
 export const CloudEngine: React.FC = () => {
@@ -21,14 +21,9 @@ export const CloudEngine: React.FC = () => {
   const speeds = [0.012, 0.028, 0.055]; 
 
   // --- 1. Deterministic Configuration (Stable across re-renders) ---
-  // ROOT CAUSE FIX: Replaced useMemo with useState (lazy init). 
-  // useMemo is a performance hint, not a semantic guarantee. React may discard it,
-  // causing Math.random() to re-run and generating new seeds (visual jumping).
-  // useState state is guaranteed to persist for the component's lifecycle.
   const [cloudConfig] = useState(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const layerCount = 3;
-    // Mobile optimization: fewer clouds but larger
     const cloudsPerLayer = isMobile ? 2 : 3;
     
     const clouds = [];
@@ -99,15 +94,9 @@ export const CloudEngine: React.FC = () => {
         
         const aspect = config.type === 'cirrus' ? 2.5 : config.type === 'stratus' ? 1.8 : 1.1;
         // Frequency: Lower = larger billows. Higher = gritty noise.
-        // We want defined shapes, so we go slightly lower (0.012)
         const freq = 0.04 / config.scale; 
 
         // STRUCTURED FILTER CHAIN:
-        // 1. feTurbulence: 3 Octaves (Perf).
-        // 2. feColorMatrix: High Contrast (6 -1.5). This pushes the grey noise to white/black, 
-        //    creating defined "islands" of distortion rather than a mushy field.
-        // 3. feDisplacementMap: Moderate scale (35).
-        // 4. feGaussianBlur: Low blur (2-3px). This preserves the "Premium Shape".
         filter.innerHTML = `
           <feTurbulence type="fractalNoise" baseFrequency="${freq} ${freq * aspect}" numOctaves="3" seed="${config.seed}" result="noise"/>
           <feColorMatrix in="noise" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 6 -1.5" result="sculptedNoise"/>
@@ -116,23 +105,22 @@ export const CloudEngine: React.FC = () => {
         `;
         defs.appendChild(filter);
 
-        const createCloudEl = (offsetX: number) => {
+        // --- ATOMIC DOM GENERATION ---
+        // We create the DOM structure ONCE.
+        const createCloudDOM = () => {
             const el = document.createElement('div');
             Object.assign(el.style, {
                 position: 'absolute',
-                left: `${config.x + offsetX}vw`, 
                 top: `${config.y}%`,
                 width: '70vmin',
                 height: '70vmin',
                 filter: `url(#${filterId})`,
-                opacity: (0.25 + config.layer * 0.1).toString(), // Boosted opacity for solidity
-                mixBlendMode: 'overlay', // Overlay keeps it blending with sky, 'normal' would be too cartoonish
+                opacity: (0.25 + config.layer * 0.1).toString(), 
+                mixBlendMode: 'overlay', 
                 transform: 'translate(-50%, -50%)',
             });
 
             // "SOLID CORE" GEOMETRY:
-            // The vapor look was caused by weak radial gradients.
-            // We now use a steeper gradient curve to mimic dense water vapor.
             const puffCount = 6; 
             for (let j = 0; j < puffCount; j++) {
                 const puff = document.createElement('div');
@@ -143,11 +131,10 @@ export const CloudEngine: React.FC = () => {
                 Object.assign(puff.style, {
                     position: 'absolute',
                     width: `${25 * pScale}vmin`,
-                    height: `${20 * pScale}vmin`, // Squashed circle for flatness
+                    height: `${20 * pScale}vmin`, 
                     left: `calc(50% + ${pX}vmin)`,
                     top: `calc(50% + ${pY}vmin)`,
                     borderRadius: '50%',
-                    // THE FIX: Harder start (0-30% is solid), then falloff.
                     background: 'radial-gradient(closest-side, rgba(255,255,255,1) 20%, rgba(255,255,255,0.5) 60%, transparent 100%)',
                 });
                 el.appendChild(puff);
@@ -155,8 +142,16 @@ export const CloudEngine: React.FC = () => {
             return el;
         };
 
-        layers[config.layer].appendChild(createCloudEl(0));
-        layers[config.layer].appendChild(createCloudEl(100));
+        // 1. Create Original
+        const original = createCloudDOM();
+        original.style.left = `${config.x}vw`;
+
+        // 2. Clone for Wrap-around (Deep Clone ensures identical "random" puffs)
+        const clone = original.cloneNode(true) as HTMLDivElement;
+        clone.style.left = `${config.x + 100}vw`;
+
+        layers[config.layer].appendChild(original);
+        layers[config.layer].appendChild(clone);
     });
 
     // --- 4. Animation Loop ---
@@ -165,6 +160,8 @@ export const CloudEngine: React.FC = () => {
     const loop = () => {
       for (let l = 0; l < layerCount; l++) {
         xPositions[l] -= speeds[l];
+        // Infinite loop logic: Reset from -100 to 0.
+        // Since Clone(0) === Original(0), this is now seamless.
         if (xPositions[l] <= -100) {
             xPositions[l] += 100;
         }
