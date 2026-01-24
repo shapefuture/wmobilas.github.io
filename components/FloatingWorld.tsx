@@ -10,17 +10,17 @@ const BASE_URL = "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master
 const ASSETS = [
     // ship_back and all balloons move LEFT -> RIGHT (reverse: true)
     // others move RIGHT -> LEFT (reverse: false)
-    // Negative delays ensure items are already distributed across the screen on load.
-    { src: "baloon_large.png", w: 5, duration: 180, delay: -45, top: 12, rotate: 2, reverse: true },
-    { src: "baloon_large2.png", w: 4, duration: 220, delay: -110, top: 22, rotate: -3, reverse: true },
-    { src: "baloon_medium.png", w: 3, duration: 150, delay: -15, top: 8, rotate: 1, reverse: true },
-    { src: "baloon_small.png", w: 2, duration: 110, delay: -70, top: 25, rotate: 4, reverse: true },
-    { src: "ship_back.png", w: 8, duration: 280, delay: -140, top: 18, rotate: 0, reverse: true },
+    // Durations increased for slower, more cinematic movement.
+    { src: "baloon_large.png", w: 5, duration: 240, delay: -60, top: 12, rotate: 2, reverse: true },
+    { src: "baloon_large2.png", w: 4, duration: 300, delay: -150, top: 22, rotate: -3, reverse: true },
+    { src: "baloon_medium.png", w: 3, duration: 210, delay: -20, top: 8, rotate: 1, reverse: true },
+    { src: "baloon_small.png", w: 2, duration: 160, delay: -80, top: 25, rotate: 4, reverse: true },
+    { src: "ship_back.png", w: 8, duration: 380, delay: -190, top: 18, rotate: 0, reverse: true },
     
     // Airships moving Right to Left
-    { src: "ship_far.png", w: 4, duration: 320, delay: -160, top: 14, rotate: -1, reverse: false },
-    { src: "ship_front.png", w: 12, duration: 240, delay: -80, top: 24, rotate: 1, reverse: false },
-    { src: "ship_very_far.png", w: 2.5, duration: 420, delay: -210, top: 6, rotate: 0, reverse: false },
+    { src: "ship_far.png", w: 4, duration: 450, delay: -220, top: 14, rotate: -1, reverse: false },
+    { src: "ship_front.png", w: 12, duration: 340, delay: -100, top: 24, rotate: 1, reverse: false },
+    { src: "ship_very_far.png", w: 2.5, duration: 550, delay: -270, top: 6, rotate: 0, reverse: false },
 ];
 
 function random(min: number, max: number) {
@@ -101,7 +101,7 @@ export const FloatingWorld: React.FC = () => {
 
         /**
          * IMPLEMENTATION: Bird logic from user snippet
-         * Distributed across the screen immediately.
+         * Velocity reduced for more natural flight patterns.
          */
         function createInitialBirds() {
             for(let i=0; i<birdCount; i++) {
@@ -109,8 +109,8 @@ export const FloatingWorld: React.FC = () => {
                     x: random(0, width),
                     y: random(0, height * 0.35), 
                     s: random(1, 3) * 0.25,
-                    vx: random(1.2, 3.5),
-                    vy: Math.sin(random(0, 10)) * 0.4,
+                    vx: random(0.6, 1.8), // Slower horizontal speed
+                    vy: Math.sin(random(0, 10)) * 0.25, // Slower vertical drift
                     wing: random(0, Math.PI * 2)
                 });
             }
@@ -127,7 +127,7 @@ export const FloatingWorld: React.FC = () => {
             birds.forEach(b => {
                 b.x -= b.vx; 
                 b.y += b.vy;
-                b.wing += 0.15;
+                b.wing += 0.08; // Slower wing flap speed
 
                 if (b.x < -100) b.x = width + 100;
                 if (b.y < -100) b.y = height * 0.4;
