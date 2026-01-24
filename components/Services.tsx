@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { Section } from './ui/Section';
 import { Eye, Compass, Activity, Fingerprint, Cpu, Lightbulb, Quote } from 'lucide-react';
 import { Reveal } from './ui/Reveal';
@@ -16,9 +16,14 @@ const ServiceCard: React.FC<{
     className?: string;
 }> = ({ title, description, icon, index, className = "" }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "0px 0px -50px 0px" });
     const [isHovered, setIsHovered] = useState(false);
     
     useEffect(() => {
+        // Optimization: Stop loop when not visible
+        if (!isInView) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { alpha: true });
@@ -35,6 +40,7 @@ const ServiceCard: React.FC<{
         const opacityBoost = isMobile ? 0.2 : 0;
 
         // --- ANIMATION KERNELS ---
+        // (Retaining existing high-quality animation logic)
         
         // 0. TREND FORECASTING: Matrix Rain
         const drawMatrix = () => {
@@ -299,22 +305,17 @@ const ServiceCard: React.FC<{
         const resize = () => {
             if (canvas.parentElement) {
                 const rect = canvas.parentElement.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap DPR at 2 for perf
                 
-                // Set logical dimensions (CSS pixels)
                 width = rect.width;
                 height = rect.height;
                 
-                // Set buffer dimensions (Physical pixels)
                 canvas.width = width * dpr;
                 canvas.height = height * dpr;
-                
-                // CRITICAL: Explicitly set CSS size to prevent canvas from expanding to buffer size
                 canvas.style.width = `${width}px`;
                 canvas.style.height = `${height}px`;
                 
-                // Scale context logic
-                ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+                ctx.setTransform(1, 0, 0, 1, 0, 0); 
                 ctx.scale(dpr, dpr);
                 
                 (canvas as any).drops = null;
@@ -332,10 +333,11 @@ const ServiceCard: React.FC<{
             cancelAnimationFrame(animationId);
             window.removeEventListener('resize', resize);
         };
-    }, [isHovered, index]);
+    }, [isHovered, index, isInView]); // Re-run effect when visibility changes
 
     return (
         <MotionDiv
+            ref={containerRef}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.5 }}

@@ -123,7 +123,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
     {
         title: t.project1Title, 
         category: t.catEdTech,
-        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/UNI.jpg",
+        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/_UNI.jpg",
         link: "http://universityofstudents.org",
         year: "2023",
         hoverDesc: t.project1Hover
@@ -131,7 +131,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
     {
         title: t.project3Title,
         category: t.catSocialRnD,
-        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/COCREATIVE.png",
+        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/_COCREATIVE.jpg",
         link: "http://u.nu/cocreator",
         year: "2024",
         hoverDesc: t.project3Hover
@@ -139,7 +139,7 @@ export const Projects: React.FC<{ t: any }> = ({ t }) => {
     {
         title: t.project2Title, 
         category: t.catAccelerator,
-        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/MAGNUS.jpg",
+        image: "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/_MAGNUS.jpg",
         link: "https://www.instagram.com/magnusanim.us",
         year: "2025",
         hoverDesc: t.project2Hover

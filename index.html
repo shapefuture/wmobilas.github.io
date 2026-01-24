@@ -89,22 +89,29 @@
         position: relative;
       }
 
+      /* 
+         FIX: Noise is now a persistent background pattern on the body instead of a 
+         fixed-position blend-mode overlay. This eliminates the huge compositing cost
+         that causes black square artifacts during scroll.
+      */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAGFBMVEUAAAA5OTkAAABMTExERERmZmYzMzMyMjIxMDF3AAAACHRSTlMAMwA5EDMzM86OeTkAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAwSURBVDjLY2AYBaNgOANGPBh4QDz4OA4OcnB44OAAg4ODg4KDkYGDg4ODg8NwCgAA5V8Ph9X2opUAAAAASUVORK5CYII=");
+        background-size: 100px 100px;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.04;
+        /* No mix-blend-mode here = stable rendering */
+      }
+
       @media (pointer: fine) {
         html, body, a, button {
           cursor: none;
         }
-      }
-      
-      .noise-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E");
-        pointer-events: none;
-        z-index: 9999;
-        mix-blend-mode: overlay;
       }
       
       .glass-panel {
@@ -129,11 +136,6 @@
         flex-direction: column;
       }
 
-      .aurora-filter {
-        filter: url(#aurora-displacement);
-      }
-
-      /* Fix for mobile text balance if engine is unsupported */
       [text-wrap:balance] {
         text-wrap: balance;
       }
@@ -151,17 +153,6 @@
 </script>
 </head>
   <body>
-    <!-- Advanced SVG Displacement for the "Aurora Curtain" Shimmer -->
-    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
-      <filter id="aurora-displacement">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.04" numOctaves="4" seed="5" result="noise">
-          <animate attributeName="baseFrequency" dur="25s" values="0.012 0.04; 0.008 0.02; 0.012 0.04" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="160" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
-
-    <div class="noise-overlay"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx" crossorigin></script>
   </body>

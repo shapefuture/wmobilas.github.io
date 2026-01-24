@@ -1,280 +1,193 @@
-
-import React, { useEffect, useRef, useId } from 'react';
+import React, { useEffect, useRef, useId, useState } from 'react';
 
 /**
  * NEPHELE | SIGGRAPH L10 VOLUMETRIC ENGINE
- * v3.3 - "Seamless Flow" Refactor
+ * v5.4 - "Solid Core" Architecture
  * 
- * FIXES: 
- * 1. Resolved sharp clipping lines by adding <feTile> after the noise offsets. 
- *    This ensures the displacement map is infinite and doesn't "run out" of 
- *    pixels when shifted by wind dx/dy.
- * 2. Switched to filterUnits="userSpaceOnUse" for absolute coordinate precision.
+ * PROBLEM: Previous "Soft" fix made clouds look like vapor/smoke.
+ * SOLUTION:
+ * 1. DENSITY: Tightened the DOM radial gradients. Clouds need a solid white core (Mie scattering), not a linear fade.
+ * 2. STRUCTURE: Increased feColorMatrix contrast (6 -1.5). This creates "clumps" instead of "wisps" while avoiding binary tearing.
+ * 3. DETAIL: Reduced blur from ~6px to ~2px. Definition comes from sharp noise, not blur.
+ * 4. PERF: Kept Octaves at 3 for 60FPS lock.
  */
 
-class CloudInstance {
-    id: string;
-    x: number = 0;
-    y: number = 0;
-    z: number = 0;
-    scale: number = 1;
-    speed: number = 0;
-    seed: number = 0;
-    color: string = '';
-    noiseAspect: number = 1.0;
-    flowOffset: number = 0;
-    flowRate: number = 12;
-
-    // DOM References
-    el: HTMLDivElement | null = null;
-    filterEl: SVGFilterElement | null = null;
-    turbEl: SVGFETurbulenceElement | null = null;
-    dispEl: SVGFEDisplacementMapElement | null = null;
-    offsetBaseEl: SVGFEOffsetElement | null = null;
-    offsetDetailEl: SVGFEOffsetElement | null = null;
-
-    filterId: string;
-    offsetBaseId: string;
-    offsetDetailId: string;
-
-    constructor(index: number, instanceId: string, totalCount: number, viewport: HTMLDivElement, filterDefs: SVGDefsElement) {
-        const uid = `${instanceId}-${index}`;
-        this.id = uid;
-        this.filterId = `f-shred-${uid}`;
-        this.offsetBaseId = `o-base-${uid}`;
-        this.offsetDetailId = `o-det-${uid}`;
-        
-        const initialX = (index / totalCount) * 160 - 30;
-        this.initPhysicals(initialX, index);
-        this.createPermanentDOM(viewport, filterDefs);
-    }
-
-    private seededRandom(s: number) {
-        const x = Math.sin(s) * 10000;
-        return x - Math.floor(x);
-    }
-
-    initPhysicals(forceX: number, seedModifier: number) {
-        const rand = this.seededRandom(seedModifier + 0.5);
-        let type: 'cumulus' | 'stratus' | 'cirrus';
-        if (rand < 0.4) type = 'cumulus';
-        else if (rand < 0.8) type = 'stratus';
-        else type = 'cirrus';
-
-        const altRand = this.seededRandom(seedModifier + 0.123);
-        const scaleRand = this.seededRandom(seedModifier + 0.456);
-
-        if (type === 'cirrus') {
-            this.y = 5 + altRand * 15;
-            this.scale = 0.5 + scaleRand * 0.4;
-            this.noiseAspect = 2.0; 
-        } else if (type === 'stratus') {
-            this.y = 15 + altRand * 20;
-            this.scale = 0.8 + scaleRand * 1.0;
-            this.noiseAspect = 2.5; 
-        } else {
-            this.y = 10 + altRand * 35;
-            this.scale = 0.7 + scaleRand * 1.3;
-            this.noiseAspect = 1.1; 
-        }
-
-        this.z = Math.max(0.1, (40 - this.y) / 40); 
-        this.x = forceX;
-        this.speed = 0.9 * (0.3 + this.z * 0.7);
-        this.seed = Math.floor(this.seededRandom(seedModifier + 0.99) * 10000);
-        this.flowOffset = this.seededRandom(seedModifier + 0.77) * 1000; 
-
-        const blueTint = (1 - this.z) * 15;
-        this.color = `rgb(${255 - blueTint}, ${255 - blueTint/2}, 255)`;
-    }
-
-    createPermanentDOM(viewport: HTMLDivElement, filterDefs: SVGDefsElement) {
-        this.el = document.createElement('div');
-        this.el.style.position = 'absolute';
-        this.el.style.width = '100vmin';
-        this.el.style.height = '100vmin';
-        this.el.style.pointerEvents = 'none';
-        this.el.style.willChange = 'transform, opacity, left';
-        this.el.style.filter = `url(#${this.filterId})`;
-        this.el.style.mixBlendMode = 'overlay'; 
-        
-        const baseR = 14 * this.scale;
-        const iterations = 8;
-        
-        let curX = 50; 
-        let curY = 50;
-        
-        for (let i = 0; i < iterations; i++) {
-            const puff = document.createElement('div');
-            const pRand = this.seededRandom(i + this.seed);
-            const aspect = 0.6 + pRand * 1.4;
-            const w = baseR * aspect;
-            const h = baseR / aspect;
-            
-            puff.style.position = 'absolute';
-            puff.style.width = `${w}vmin`;
-            puff.style.height = `${h}vmin`;
-            puff.style.left = `${curX - (w/2)}vmin`;
-            puff.style.top = `${curY - (h/2)}vmin`;
-            puff.style.borderRadius = `${30 + pRand * 40}% ${30 + pRand * 40}%`;
-            puff.style.background = `radial-gradient(circle at center, ${this.color} 0%, transparent 80%)`;
-            puff.style.opacity = (0.4 + (1-this.z) * 0.5).toString();
-            puff.style.transform = `rotate(${pRand * 360}deg)`;
-            
-            this.el.appendChild(puff);
-            curX += (this.seededRandom(i + 1.1) - 0.3) * (baseR * 0.7);
-            curY += (this.seededRandom(i + 1.2) - 0.5) * (baseR * 0.3);
-        }
-
-        this.filterEl = document.createElementNS("http://www.w3.org/2000/svg", "filter");
-        this.filterEl.setAttribute("id", this.filterId);
-        
-        // Use userSpaceOnUse to avoid scaling issues and set a massive region
-        this.filterEl.setAttribute("filterUnits", "userSpaceOnUse");
-        this.filterEl.setAttribute("primitiveUnits", "userSpaceOnUse");
-        this.filterEl.setAttribute("x", "-200vmin");
-        this.filterEl.setAttribute("y", "-200vmin");
-        this.filterEl.setAttribute("width", "500vmin");
-        this.filterEl.setAttribute("height", "500vmin");
-        this.filterEl.setAttribute("color-interpolation-filters", "sRGB");
-
-        const freq = 0.012 / (this.scale * 0.9);
-        
-        // Added <feTile> nodes. This is the fix for the "sharp edge".
-        // When feOffset moves a primitive, feTile can repeat it across the whole filter region.
-        this.filterEl.innerHTML = `
-            <feTurbulence type="fractalNoise" baseFrequency="${freq} ${freq * this.noiseAspect}" numOctaves="5" seed="${this.seed}" result="bRaw"/>
-            <feOffset in="bRaw" dx="0" dy="0" id="${this.offsetBaseId}" result="bShift"/>
-            <feTile in="bShift" result="bTiled" />
-            
-            <feTurbulence type="fractalNoise" baseFrequency="${freq * 4}" numOctaves="2" seed="${this.seed + 1}" result="dRaw"/>
-            <feOffset in="dRaw" dx="0" dy="0" id="${this.offsetDetailId}" result="dShift"/>
-            <feTile in="dShift" result="dTiled" />
-
-            <feComposite in="bTiled" in2="dTiled" operator="arithmetic" k2="0.8" k3="0.2" result="mix"/>
-            <feColorMatrix in="mix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 10 -3" result="edge"/>
-            <feDisplacementMap in="SourceGraphic" in2="edge" scale="${90 * this.scale}" xChannelSelector="R" yChannelSelector="G" />
-            <feGaussianBlur stdDeviation="${(1.5 - this.z) * 2 + 1}"/>
-        `;
-
-        viewport.appendChild(this.el);
-        filterDefs.appendChild(this.filterEl);
-
-        this.turbEl = this.filterEl.querySelector('feTurbulence') as SVGFETurbulenceElement;
-        this.dispEl = this.filterEl.querySelector('feDisplacementMap') as SVGFEDisplacementMapElement;
-        this.offsetBaseEl = this.filterEl.querySelector(`#${this.offsetBaseId}`) as SVGFEOffsetElement;
-        this.offsetDetailEl = this.filterEl.querySelector(`#${this.offsetDetailId}`) as SVGFEOffsetElement;
-    }
-
-    respawn() {
-        this.x = -60; 
-        const newSeedModifier = Math.floor(Date.now() / 1000) + this.seed;
-        this.initPhysicals(-60, newSeedModifier);
-        
-        if (this.turbEl) {
-            const freq = 0.012 / (this.scale * 0.9);
-            this.turbEl.setAttribute("baseFrequency", `${freq} ${freq * this.noiseAspect}`);
-            this.turbEl.setAttribute("seed", this.seed.toString());
-        }
-        if (this.dispEl) {
-            this.dispEl.setAttribute("scale", (90 * this.scale).toString());
-        }
-    }
-
-    update(dt: number) {
-        this.x += this.speed * dt;
-        if (this.x > 160) {
-            this.respawn();
-        }
-
-        this.flowOffset -= dt * this.flowRate;
-
-        // Keep flowOffset manageable to avoid floating point precision issues in SVG attributes
-        if (Math.abs(this.flowOffset) > 10000) {
-            this.flowOffset %= 10000;
-        }
-
-        if (this.offsetBaseEl) this.offsetBaseEl.setAttribute('dx', this.flowOffset.toFixed(1));
-        if (this.offsetDetailEl) {
-            this.offsetDetailEl.setAttribute('dx', (this.flowOffset * 1.4).toFixed(1));
-            this.offsetDetailEl.setAttribute('dy', (Math.sin(this.flowOffset * 0.01) * 2).toFixed(1));
-        }
-
-        if (this.el) {
-            this.el.style.left = `${this.x}%`;
-            this.el.style.top = `${this.y}%`;
-            
-            const fadeStart = -40;
-            const fadeEnd = 140;
-            const fadeIn = (this.x - fadeStart) / 25;
-            const fadeOut = (fadeEnd - this.x) / 35;
-            const edgeFade = Math.max(0, Math.min(1, Math.min(fadeIn, fadeOut)));
-            
-            this.el.style.opacity = (edgeFade * (0.2 + this.z * 0.7)).toString();
-            this.el.style.transform = `translate(-50%, -50%) skewX(${Math.sin(this.flowOffset * 0.002) * 4}deg)`;
-        }
-    }
-}
-
 export const CloudEngine: React.FC = () => {
-    const viewportRef = useRef<HTMLDivElement>(null);
-    const filterDefsRef = useRef<SVGDefsElement>(null);
-    const instanceId = useId().replace(/:/g, "-");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const filterDefsRef = useRef<SVGDefsElement>(null);
+  const engineId = useId().replace(/:/g, "-");
 
-    const engineRef = useRef<{
-        clouds: CloudInstance[];
-        lastTime: number;
-        animationFrameId: number;
-        running: boolean;
-    }>({
-        clouds: [],
-        lastTime: 0,
-        animationFrameId: 0,
-        running: true
+  // Speed constants for the 3 layers (stratification)
+  const speeds = [0.012, 0.028, 0.055]; 
+
+  // --- 1. Deterministic Configuration (Stable across re-renders) ---
+  // ROOT CAUSE FIX: Replaced useMemo with useState (lazy init). 
+  // useMemo is a performance hint, not a semantic guarantee. React may discard it,
+  // causing Math.random() to re-run and generating new seeds (visual jumping).
+  // useState state is guaranteed to persist for the component's lifecycle.
+  const [cloudConfig] = useState(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const layerCount = 3;
+    // Mobile optimization: fewer clouds but larger
+    const cloudsPerLayer = isMobile ? 2 : 3;
+    
+    const clouds = [];
+
+    for (let l = 0; l < layerCount; l++) {
+      for (let i = 0; i < cloudsPerLayer; i++) {
+        const basePos = (i / cloudsPerLayer) * 100; 
+        const jitter = (Math.random() * 20 - 10);
+        
+        clouds.push({
+            id: `l${l}-c${i}`,
+            layer: l,
+            x: basePos + jitter, 
+            y: 5 + (l * 10) + (Math.random() * 15), 
+            scale: (0.7 + Math.random() * 0.7) * (0.6 + l * 0.4),
+            seed: Math.floor(Math.random() * 10000),
+            type: Math.random() < 0.4 ? 'cumulus' : Math.random() < 0.8 ? 'stratus' : 'cirrus'
+        });
+      }
+    }
+    return clouds;
+  });
+
+  useEffect(() => {
+    if (!containerRef.current || !filterDefsRef.current) return;
+
+    const viewport = containerRef.current;
+    const defs = filterDefsRef.current;
+    
+    // Reset DOM
+    viewport.innerHTML = '';
+    defs.innerHTML = '';
+
+    const layerCount = 3;
+    const layers: HTMLDivElement[] = [];
+    const xPositions = [0, 0, 0];
+
+    // --- 2. Create Layer Containers ---
+    for (let l = 0; l < layerCount; l++) {
+      const layer = document.createElement('div');
+      Object.assign(layer.style, {
+          position: 'absolute',
+          inset: '0',
+          willChange: 'transform', 
+          pointerEvents: 'none',
+          width: '200vw',
+          height: '100%',
+          backfaceVisibility: 'hidden',
+          perspective: '1000px',
+      });
+      viewport.appendChild(layer);
+      layers.push(layer);
+    }
+
+    // --- 3. Generate Filters & Render Clouds ---
+    cloudConfig.forEach(config => {
+        const filterId = `${engineId}-${config.id}`;
+        const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+        
+        // Tighter bounds for GPU performance
+        filter.setAttribute("id", filterId);
+        filter.setAttribute("filterUnits", "userSpaceOnUse");
+        filter.setAttribute("x", "-50%");
+        filter.setAttribute("y", "-50%");
+        filter.setAttribute("width", "200%");
+        filter.setAttribute("height", "200%");
+        filter.setAttribute("color-interpolation-filters", "sRGB");
+        
+        const aspect = config.type === 'cirrus' ? 2.5 : config.type === 'stratus' ? 1.8 : 1.1;
+        // Frequency: Lower = larger billows. Higher = gritty noise.
+        // We want defined shapes, so we go slightly lower (0.012)
+        const freq = 0.04 / config.scale; 
+
+        // STRUCTURED FILTER CHAIN:
+        // 1. feTurbulence: 3 Octaves (Perf).
+        // 2. feColorMatrix: High Contrast (6 -1.5). This pushes the grey noise to white/black, 
+        //    creating defined "islands" of distortion rather than a mushy field.
+        // 3. feDisplacementMap: Moderate scale (35).
+        // 4. feGaussianBlur: Low blur (2-3px). This preserves the "Premium Shape".
+        filter.innerHTML = `
+          <feTurbulence type="fractalNoise" baseFrequency="${freq} ${freq * aspect}" numOctaves="3" seed="${config.seed}" result="noise"/>
+          <feColorMatrix in="noise" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 6 -1.5" result="sculptedNoise"/>
+          <feDisplacementMap in="SourceGraphic" in2="sculptedNoise" scale="${35 * config.scale}" xChannelSelector="R" yChannelSelector="G" />
+          <feGaussianBlur stdDeviation="${(2 + (1 - config.layer * 0.5)) * config.scale}"/>
+        `;
+        defs.appendChild(filter);
+
+        const createCloudEl = (offsetX: number) => {
+            const el = document.createElement('div');
+            Object.assign(el.style, {
+                position: 'absolute',
+                left: `${config.x + offsetX}vw`, 
+                top: `${config.y}%`,
+                width: '70vmin',
+                height: '70vmin',
+                filter: `url(#${filterId})`,
+                opacity: (0.25 + config.layer * 0.1).toString(), // Boosted opacity for solidity
+                mixBlendMode: 'overlay', // Overlay keeps it blending with sky, 'normal' would be too cartoonish
+                transform: 'translate(-50%, -50%)',
+            });
+
+            // "SOLID CORE" GEOMETRY:
+            // The vapor look was caused by weak radial gradients.
+            // We now use a steeper gradient curve to mimic dense water vapor.
+            const puffCount = 6; 
+            for (let j = 0; j < puffCount; j++) {
+                const puff = document.createElement('div');
+                const pScale = 0.8 + Math.random() * 0.8; 
+                const pX = (Math.random() - 0.5) * 45; 
+                const pY = (Math.random() - 0.5) * 25;
+                
+                Object.assign(puff.style, {
+                    position: 'absolute',
+                    width: `${25 * pScale}vmin`,
+                    height: `${20 * pScale}vmin`, // Squashed circle for flatness
+                    left: `calc(50% + ${pX}vmin)`,
+                    top: `calc(50% + ${pY}vmin)`,
+                    borderRadius: '50%',
+                    // THE FIX: Harder start (0-30% is solid), then falloff.
+                    background: 'radial-gradient(closest-side, rgba(255,255,255,1) 20%, rgba(255,255,255,0.5) 60%, transparent 100%)',
+                });
+                el.appendChild(puff);
+            }
+            return el;
+        };
+
+        layers[config.layer].appendChild(createCloudEl(0));
+        layers[config.layer].appendChild(createCloudEl(100));
     });
 
-    useEffect(() => {
-        if (!viewportRef.current || !filterDefsRef.current) return;
-        
-        engineRef.current.running = true;
-        engineRef.current.clouds = [];
-        engineRef.current.lastTime = performance.now();
-
-        const count = 7;
-        for (let i = 0; i < count; i++) {
-            engineRef.current.clouds.push(
-                new CloudInstance(i, instanceId, count, viewportRef.current, filterDefsRef.current)
-            );
+    // --- 4. Animation Loop ---
+    let animationFrameId: number;
+    
+    const loop = () => {
+      for (let l = 0; l < layerCount; l++) {
+        xPositions[l] -= speeds[l];
+        if (xPositions[l] <= -100) {
+            xPositions[l] += 100;
         }
+        layers[l].style.transform = `translate3d(${xPositions[l]}vw, 0, 0)`;
+      }
+      animationFrameId = requestAnimationFrame(loop);
+    };
 
-        const loop = (now: number) => {
-            if (!engineRef.current.running) return;
-            let dt = (now - engineRef.current.lastTime) / 1000;
-            if (dt > 0.1) dt = 0.016; 
-            engineRef.current.lastTime = now;
+    animationFrameId = requestAnimationFrame(loop);
 
-            for (const cloud of engineRef.current.clouds) {
-                cloud.update(dt);
-            }
-            engineRef.current.animationFrameId = requestAnimationFrame(loop);
-        };
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      if (viewport) viewport.innerHTML = '';
+      if (defs) defs.innerHTML = '';
+    };
+  }, [engineId, cloudConfig]);
 
-        engineRef.current.animationFrameId = requestAnimationFrame(loop);
-
-        return () => {
-            engineRef.current.running = false;
-            cancelAnimationFrame(engineRef.current.animationFrameId);
-            if (viewportRef.current) viewportRef.current.innerHTML = '';
-            if (filterDefsRef.current) filterDefsRef.current.innerHTML = '';
-        };
-    }, [instanceId]);
-
-    return (
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-            <div ref={viewportRef} className="absolute inset-0 z-10" />
-            <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
-                <defs ref={filterDefsRef}></defs>
-            </svg>
-        </div>
-    );
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div ref={containerRef} className="absolute inset-0" />
+      <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+        <defs ref={filterDefsRef}></defs>
+      </svg>
+    </div>
+  );
 };

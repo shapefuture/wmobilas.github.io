@@ -21,17 +21,15 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
     let time = 0;
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // PERF: Downscale resolution by 0.5x for performance, rely on CSS scaling/blur for visual quality
+      const dpr = 0.5 * (window.devicePixelRatio || 1);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
       ctx.scale(dpr, dpr);
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
     };
 
     /**
      * SIGGRAPH PREMIUM PALETTE - 13 Hyper-Saturated Hues
-     * Carefully balanced lightness to prevent additive washout while maintaining neon intensity.
      */
     const PALETTE = [
         { h: 142, s: 95, l: 55 },  // Hyper Green
@@ -51,52 +49,41 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
 
     const draw = () => {
       const velocity = smoothVelocity.get();
-      
-      // FIX: Dampen the velocity contribution significantly to prevent "jumping"
-      // Base speed is slightly reduced (0.03) and scroll boost is capped (0.04 max)
       const scrollBoost = Math.min(Math.abs(velocity) * 0.0001, 0.04);
       time += 0.03 + scrollBoost;
       
+      // Use logical dimensions for clearing since we scaled the context
       const w = window.innerWidth;
-      const h = window.innerHeight * 0.7; // Taller render area for more vertical presence
+      const h = window.innerHeight * 0.7;
 
       ctx.clearRect(0, 0, w, h);
-
-      // We use Source-Over but increase the layer count to 8 for rich volumetric depth
       ctx.globalCompositeOperation = 'source-over';
 
-      const rayWidth = 6;
+      // Increased ray width to compensate for lower resolution
+      const rayWidth = 12; 
       const numRays = Math.ceil(w / rayWidth);
       
-      // Increased to 8 layers for complex overlapping curtains
-      for (let layer = 0; layer < 8; layer++) {
+      // Reduced layers slightly for performance
+      for (let layer = 0; layer < 6; layer++) {
           const color = PALETTE[layer % PALETTE.length];
-          // Each layer has varying frequency and significantly higher speed for kinetic energy
           const freq = 0.003 - (layer * 0.0004);
-          const layerSpeed = (layer + 1) * 1.5; // Multiplier for distinct phase speeds
+          const layerSpeed = (layer + 1) * 1.5; 
           const offset = layer * 5000;
 
           for (let i = 0; i < numRays; i++) {
               const x = i * rayWidth;
               
-              // Vertical Ray-Casting Noise Logic
-              // High-frequency interference for that "shimmering curtain" look
               const noise = 
                   Math.sin(x * freq + time * (layerSpeed * 0.2) + offset) * 1.0 +
                   Math.sin(x * (freq * 2.8) - time * (layerSpeed * 0.15)) * 0.6 +
-                  Math.cos(x * 0.01 + time * 0.5) * 0.2; // High speed shimmer
+                  Math.cos(x * 0.01 + time * 0.5) * 0.2; 
               
-              // Normalize noise to 0-1 range
               const n = Math.max(0, (noise + 1.8) / 3.6);
               
-              // Threshold for ray definition
               if (n > 0.35) {
                    const heightMap = n * h;
-                   
-                   // Exponential alpha falloff for sharp ray cores
                    const alpha = Math.pow(n, 4) * (0.25 / (layer * 0.5 + 1)); 
 
-                   // Gradient with soft transitions
                    const grad = ctx.createLinearGradient(x, 0, x, heightMap);
                    grad.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${color.l}%, 0)`);
                    grad.addColorStop(0.15, `hsla(${color.h}, ${color.s}%, ${color.l}%, ${alpha})`);
@@ -117,7 +104,6 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
 
     return () => {
       window.removeEventListener('resize', resize);
-      // Fix: Correct variable name from animationId to animationFrameId
       cancelAnimationFrame(animationFrameId);
     };
   }, [active, smoothVelocity]);
@@ -132,16 +118,16 @@ export const AuroraBorealis: React.FC<{ active: boolean }> = ({ active }) => {
           transition={{ duration: 1, ease: "circOut" }}
           className="fixed top-0 left-0 right-0 z-[40] pointer-events-none h-[40vh]"
           style={{
-             // plus-lighter for additive holographic color mixing
              mixBlendMode: 'plus-lighter',
-             // Vertical mask for seamless bleed into the content
              maskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.8) 40%, transparent 100%)',
              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.8) 40%, transparent 100%)'
           }}
         >
+          {/* Upscale the low-res canvas via CSS to smooth out pixels */}
           <canvas 
             ref={canvasRef} 
             className="w-full h-full filter blur-[10px] saturate-[1.5] brightness-[1.2]"
+            style={{ width: '100%', height: '100%' }}
           />
         </MotionDiv>
       )}

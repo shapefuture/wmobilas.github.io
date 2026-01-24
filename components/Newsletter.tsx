@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { Section } from './ui/Section';
 import { Send } from 'lucide-react';
 
@@ -8,10 +8,13 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
     const [email, setEmail] = useState('');
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef);
     const [isHovering, setIsHovering] = useState(false);
 
     // --- WARP SPEED ANIMATION ---
     useEffect(() => {
+        if (!isInView) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -22,8 +25,10 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
         
         const resize = () => {
             if (containerRef.current) {
-                canvas.width = containerRef.current.offsetWidth;
-                canvas.height = containerRef.current.offsetHeight;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                canvas.width = containerRef.current.offsetWidth * dpr;
+                canvas.height = containerRef.current.offsetHeight * dpr;
+                ctx.scale(dpr, dpr);
             }
         };
         resize();
@@ -35,8 +40,8 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
             z: number;
             
             constructor() {
-                this.x = (Math.random() - 0.5) * canvas!.width * 2;
-                this.y = (Math.random() - 0.5) * canvas!.height * 2;
+                this.x = (Math.random() - 0.5) * (canvas!.width/2) * 2;
+                this.y = (Math.random() - 0.5) * (canvas!.height/2) * 2;
                 this.z = Math.random() * 2000; // Depth
             }
 
@@ -44,16 +49,16 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
                 this.z -= speed;
                 if (this.z <= 1) {
                     this.z = 2000;
-                    this.x = (Math.random() - 0.5) * canvas!.width * 2;
-                    this.y = (Math.random() - 0.5) * canvas!.height * 2;
+                    this.x = (Math.random() - 0.5) * (canvas!.width/2) * 2;
+                    this.y = (Math.random() - 0.5) * (canvas!.height/2) * 2;
                 }
             }
 
             draw() {
                 if (!ctx) return;
                 
-                const cx = canvas!.width / 2;
-                const cy = canvas!.height / 2;
+                const cx = (canvas!.width / 2) / (window.devicePixelRatio || 1);
+                const cy = (canvas!.height / 2) / (window.devicePixelRatio || 1);
                 
                 // Perspective projection
                 const sx = (this.x / this.z) * 500 + cx;
@@ -86,7 +91,8 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
 
         const initStars = () => {
             stars = [];
-            for(let i = 0; i < 400; i++) {
+            // Reduced count for optimization
+            for(let i = 0; i < 200; i++) {
                 stars.push(new Star());
             }
         };
@@ -95,8 +101,10 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
 
         const animate = () => {
             // Clear with slight trail for motion blur feeling
+            // Divide by DPR to clear full buffer
+            const dpr = window.devicePixelRatio || 1;
             ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
             
             // Speed control
             const speed = isHovering ? 40 : 2;
@@ -115,7 +123,7 @@ export const Newsletter: React.FC<{ t?: any }> = ({ t }) => {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationFrameId);
         };
-    }, [isHovering]);
+    }, [isHovering, isInView]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

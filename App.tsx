@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Hero } from './components/Hero';
@@ -18,19 +17,9 @@ import { ScrollToTop } from './components/ui/ScrollToTop';
 import { AuroraBorealis } from './components/AuroraBorealis';
 import { translations, Locale } from './i18n';
 
-const ASSETS = [
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/BACKG.jpg",
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/personal_photo.jpg",
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/COCREATIVE.png",
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/MAGNUS.jpg",
-  "https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/UNI.jpg"
-];
-
-const MotionDiv = motion.div as any;
-
 const App: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
+  const [preloaderActive, setPreloaderActive] = useState(true);
+  const [revealContent, setRevealContent] = useState(false);
   const [locale, setLocale] = useState<Locale>('en');
   const [auroraActive, setAuroraActive] = useState(false);
   
@@ -66,45 +55,12 @@ const App: React.FC = () => {
   }, [locale]);
 
   useEffect(() => {
-    let mounted = true;
-    
-    // Safety Timeout: If loading takes more than 5 seconds, force unlock
-    const safetyTimeout = setTimeout(() => {
-        if (mounted && loading) {
-            setLoading(false);
-            setProgress(100);
-        }
-    }, 5000);
-
-    const loadAllAssets = async () => {
-      let loadedCount = 0;
-      const totalAssets = ASSETS.length;
-      const updateProgress = () => {
-        if (!mounted) return;
-        loadedCount++;
-        setProgress(Math.round((loadedCount / totalAssets) * 100));
-      };
-      const promises = ASSETS.map((src) => {
-        return new Promise<void>((resolve) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = () => { updateProgress(); resolve(); };
-          img.onerror = () => { updateProgress(); resolve(); };
-        });
-      });
-      await Promise.all(promises);
-      if (mounted) {
-        setProgress(100);
-        clearTimeout(safetyTimeout);
-        setTimeout(() => setLoading(false), 800);
-      }
-    };
-    loadAllAssets();
-    return () => { 
-        mounted = false; 
-        clearTimeout(safetyTimeout);
-    };
-  }, []);
+    if (preloaderActive) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+  }, [preloaderActive]);
 
   const toggleLanguage = (e: React.MouseEvent) => {
     if (langTransition.active) return;
@@ -129,68 +85,76 @@ const App: React.FC = () => {
     requestAnimationFrame(frame);
   };
 
+  const handlePreloaderComplete = () => {
+    // Immediate reveal to start the focus pull as the preloader flash is at its peak
+    setPreloaderActive(false);
+    setRevealContent(true);
+  };
+
   return (
     <>
       <CustomCursor />
-      <AuroraBorealis active={auroraActive} />
+      <AuroraBorealis active={auroraActive && !preloaderActive} />
       
-      <AnimatePresence>
-        {!loading && (
-          <MotionDiv
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 2.5, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <SectionNavigator sections={navSections} />
-          </MotionDiv>
-        )}
-      </AnimatePresence>
-      
-      <ScrollToTop />
-      
-      {langTransition.active && (
-          <div className="fixed inset-0 z-[10000] pointer-events-none overflow-hidden">
-              <div 
-                  className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
-                  style={{
-                      maskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
-                      WebkitMaskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
-                  }}
-              />
-          </div>
-      )}
-
       <AnimatePresence mode="wait">
-        {loading && (
-            <Preloader 
-                progress={progress}
-                onComplete={() => setLoading(false)} 
-                t={t}
-            />
-        )}
+          {preloaderActive && (
+             <Preloader key="preloader" onComplete={handlePreloaderComplete} t={t} />
+          )}
       </AnimatePresence>
-      
-      <div className={`w-full bg-background text-primary selection:bg-accent-lime selection:text-black transition-opacity duration-700 ${loading ? 'opacity-0 pointer-events-none overflow-hidden' : 'opacity-100'}`}>
-        <Header locale={locale} setLocale={toggleLanguage as any} t={t} />
-        
-        <main className="relative z-10 w-full overflow-x-hidden">
-          <Hero 
-            t={t} 
-            startReveal={!loading} 
-            onNameClick={() => setAuroraActive(!auroraActive)} 
-            setLocale={toggleLanguage as any}
-          />
-          <ManifestBanner t={t} />
-          <About t={t} />
-          <Projects t={t} />
-          <Services t={t} />
-          <Newsletter t={t} />
-          <Contact t={t} />
-          <Support t={t} />
-        </main>
-        
-        <Footer t={t} />
-      </div>
+
+      <motion.div
+        className="relative z-0 w-full bg-background text-primary selection:bg-accent-lime selection:text-black"
+        initial={{ 
+          opacity: 0, 
+          scale: 1.05, 
+          filter: "blur(20px) brightness(2)",
+        }}
+        animate={revealContent ? { 
+          opacity: 1, 
+          scale: 1, 
+          filter: "blur(0px) brightness(1)",
+        } : {}}
+        transition={{ 
+          duration: 1.8, 
+          ease: [0.16, 1, 0.3, 1],
+          opacity: { duration: 1.2 }
+        }}
+      >
+          <SectionNavigator sections={navSections} />
+          <ScrollToTop />
+          
+          {langTransition.active && (
+              <div className="fixed inset-0 z-[10000] pointer-events-none overflow-hidden">
+                  <div 
+                      className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
+                      style={{
+                          maskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
+                          WebkitMaskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
+                      }}
+                  />
+              </div>
+          )}
+
+          <Header locale={locale} setLocale={toggleLanguage as any} t={t} />
+          
+          <main className="relative z-10 w-full overflow-x-hidden">
+            <Hero 
+              t={t} 
+              startReveal={revealContent} 
+              onNameClick={() => setAuroraActive(!auroraActive)} 
+              setLocale={toggleLanguage as any}
+            />
+            <ManifestBanner t={t} />
+            <About t={t} />
+            <Projects t={t} />
+            <Services t={t} />
+            <Newsletter t={t} />
+            <Contact t={t} />
+            <Support t={t} />
+          </main>
+          
+          <Footer t={t} />
+      </motion.div>
     </>
   );
 };

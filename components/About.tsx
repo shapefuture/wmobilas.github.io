@@ -59,9 +59,9 @@ const MethodNode: React.FC<{ title: string; desc: string; index: number }> = ({ 
     }
   
     return (
-      <Reveal delay={index * 0.2} fullHeight={true}>
+      <Reveal delay={index * 0.2} fullHeight={true} width="100%" className="w-full">
         <div 
-            className="group relative h-full bg-white/5 border border-white/10 p-6 md:p-8 rounded-sm overflow-hidden hover:border-accent-lime/30 transition-colors duration-500"
+            className="group relative h-full w-full bg-white/5 border border-white/10 p-6 md:p-8 rounded-sm overflow-hidden hover:border-accent-lime/30 transition-colors duration-500"
             onMouseMove={handleMouseMove}
         >
           <MotionDiv
@@ -99,16 +99,18 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
             
             {/* PORTRAIT */}
             <div className="lg:w-[42%] relative order-2 lg:order-1 flex flex-col">
-                 <Reveal delay={0.2} className="h-full" fullHeight={true}>
-                    <div className="relative w-full h-full min-h-[400px] md:min-h-[500px] rounded-sm overflow-hidden border border-white/10 group bg-[#0A0A0A]">
+                 <Reveal delay={0.2} className="h-full" fullHeight={true} blurStrength={0} width="100%">
+                    <div className="relative w-full h-full min-h-[400px] md:min-h-[500px] rounded-sm overflow-hidden border border-white/10 group bg-[#0A0A0A] [transform:translate3d(0,0,0)] [backface-visibility:hidden]">
                         <img 
                             src="https://cdn.jsdelivr.net/gh/wmobilas/wmobilas.github.io@master/personal_photo.jpg" 
                             alt="Viktor Perminov" 
-                            className="w-full h-full object-cover grayscale contrast-110 group-hover:grayscale-0 transition-all duration-700 ease-[0.22,1,0.36,1] scale-100 group-hover:scale-105"
+                            className="w-full h-full object-cover grayscale brightness-90 contrast-110 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700 ease-[0.22,1,0.36,1] scale-100 group-hover:scale-105"
+                            loading="eager"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                         
-                        <div className="absolute bottom-6 left-6 right-6 flex justify-center pointer-events-none">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80 pointer-events-none" />
+                        
+                        <div className="absolute bottom-6 left-6 right-6 flex justify-center pointer-events-none z-30">
                             <div className="inline-flex items-center justify-center gap-3 text-[9px] font-mono text-accent-lime uppercase tracking-widest border border-accent-lime/30 px-4 py-1.5 bg-black/50 backdrop-blur-md rounded-full shadow-2xl">
                                 <span className="whitespace-nowrap">VIKTOR PERMINOV</span>
                                 <Globe size={10} className="shrink-0" />
@@ -148,7 +150,6 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
                     </div>
                 </div>
 
-                {/* QUOTE SECTION */}
                 <MotionDiv 
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -180,19 +181,19 @@ export const About: React.FC<{ t: any }> = ({ t }) => {
             </div>
         </div>
 
-        <div className="w-full">
-            <Reveal delay={0.4} width="100%">
-                <div className="flex items-center justify-center gap-4 mb-8 md:mb-10 opacity-50 w-full text-center">
-                        <div className="h-[1px] w-8 md:w-16 bg-white/20" />
-                        <div className="flex items-center justify-center gap-2 text-[9px] font-mono uppercase tracking-widest text-white text-center w-auto">
+        <div className="w-full max-w-7xl mx-auto">
+            <Reveal delay={0.4} width="100%" className="w-full">
+                <div className="flex items-center justify-center gap-4 mb-8 md:mb-12 opacity-50 w-full text-center">
+                        <div className="h-[1px] flex-1 bg-white/10 hidden md:block" />
+                        <div className="flex items-center justify-center gap-2 text-[9px] font-mono uppercase tracking-[0.3em] text-white text-center w-auto px-4">
                             <Zap size={12} className="text-accent-lime" />
                             {t.processingProtocols}
                         </div>
-                        <div className="h-[1px] w-8 md:w-16 bg-white/20" />
+                        <div className="h-[1px] flex-1 bg-white/10 hidden md:block" />
                 </div>
             </Reveal>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch justify-items-center w-full">
                 <MethodNode index={0} title={t.method1Title} desc={t.bullet1} />
                 <MethodNode index={1} title={t.method2Title} desc={t.bullet2} />
                 <MethodNode index={2} title={t.method3Title} desc={t.bullet3} />

@@ -31,6 +31,21 @@ export const Reveal: React.FC<RevealProps> = ({
     }
   }, [isInView, mainControls]);
 
+  // If blurStrength is 0, we simply omit the filter property entirely from the variants object.
+  // Passing `filter: "none"` can sometimes force layer promotion which leads to artifacts.
+  const variants = {
+    hidden: { 
+        opacity: 0, 
+        y: 30, 
+        ...(blurStrength > 0 && { filter: `blur(${blurStrength}px)` })
+    },
+    visible: { 
+        opacity: 1, 
+        y: 0, 
+        ...(blurStrength > 0 && { filter: "blur(0px)" })
+    },
+  };
+
   return (
     <div 
       ref={ref} 
@@ -41,14 +56,13 @@ export const Reveal: React.FC<RevealProps> = ({
       className={`relative ${className}`}
     >
       <MotionDiv
-        variants={{
-          hidden: { opacity: 0, y: 30, filter: `blur(${blurStrength}px)` },
-          visible: { opacity: 1, y: 0, filter: "blur(0px)" },
-        }}
+        variants={variants}
         initial="hidden"
         animate={mainControls}
         transition={{ duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
-        style={{ height: fullHeight ? "100%" : "auto" }}
+        style={{ 
+          height: fullHeight ? "100%" : "auto"
+        }}
       >
         {children}
       </MotionDiv>
