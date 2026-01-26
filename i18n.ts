@@ -1,4 +1,5 @@
 
+
 export type Locale = 'en' | 'ru';
 
 export const translations = {
@@ -89,6 +90,14 @@ export const translations = {
     supportButton: "Support my work",
     footerQuote: "Manifest Heartfulness",
     systemOnline: "System: Online",
+    
+    // Support Modal
+    supportModalTitle: "Accelerate the Future",
+    supportModalDesc: "Your contribution directly fuels independent research into collective consciousness and open-source systems. Thank you for your energy.",
+    preferredMethods: "Priority Channels",
+    otherMethods: "Standard Channels",
+    copy: "Copy",
+    copied: "Copied",
     
     // UI/System - Solarpunk
     loading: "/// GERMINATION_SEQUENCE",
@@ -205,6 +214,14 @@ export const translations = {
     supportButton: "Поддержать работу",
     footerQuote: "Manifest Heartfulness",
     systemOnline: "Система: Онлайн",
+
+    // Support Modal
+    supportModalTitle: "Ускорьте Будущее",
+    supportModalDesc: "Ваш вклад напрямую питает независимые исследования в области коллективного сознания и открытых систем. Спасибо за вашу энергию.",
+    preferredMethods: "Приоритетные каналы",
+    otherMethods: "Стандартные каналы",
+    copy: "Скопировать",
+    copied: "Скопировано",
     
     // UI/System - Solarpunk
     loading: "/// ПОСАДКА_СЕМЯН",
