@@ -1,5 +1,3 @@
-
-
 export type Locale = 'en' | 'ru';
 
 export const translations = {
@@ -27,7 +25,7 @@ export const translations = {
     manifest: "MANIFEST HEARTFULNESS",
     flags: "🇺🇸🇮🇱🇺🇦🇰🇷🇦🇷🇹🇷🇹🇭🇻🇳🇳🇵🇬🇪🇦🇹🇪🇸",
     bullet1: "Developing high-impact product & brand strategies via trend research.",
-    bullet2: "Alumni of Minerva University, USA — studied the intersection of Business & Neuropsychology.",
+    bullet2: "Studied at Minerva University, USA — focused on the intersection of Business & Neuropsychology.",
     bullet3: "Engineering uncommon solutions for 'unsolvable' challenges at individual and system levels.",
     method1Title: "Trend Research",
     method2Title: "Neuropsychology",
@@ -151,7 +149,7 @@ export const translations = {
     manifest: "MANIFEST HEARTFULNESS",
     flags: "🇺🇸🇮🇱🇺🇦🇷🇺🇰🇷🇦🇷🇹🇷🇹🇭🇻🇳🇳🇵",
     bullet1: "Разработка стратегий для\u00A0tech и\u00A0edtech проектов на\u00A0основе анализа рыночных трендов.",
-    bullet2: "Выпускник Minerva University, США\u00A0— изучал пересечение бизнеса и\u00A0нейропсихологии.",
+    bullet2: "Проходил обучение в Minerva University, США — изучал пересечение бизнеса и нейропсихологии.",
     bullet3: "Поиск нестандартных решений для\u00A0вызовов, которые кажутся неразрешимыми.",
     method1Title: "Исследования Трендов",
     method2Title: "Нейропсихология",
