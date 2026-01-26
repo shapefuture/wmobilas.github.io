@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -74,8 +73,6 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
 
   if (!mounted) return null;
 
-  // The createPortal MUST be outside AnimatePresence or AnimatePresence must stay alive
-  // to track the exit animation.
   return createPortal(
     <AnimatePresence mode="wait">
       {isOpen && (
@@ -102,7 +99,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 border border-accent-lime/30 rounded-full text-accent-lime text-[10px] font-mono uppercase tracking-widest bg-accent-lime/5 mb-4">
                     <Heart size={10} className="fill-accent-lime" />
-                    <span>{t.supportModalTitle}</span>
+                    <span>SUPPORT_PROTOCOLS</span>
                 </div>
                 <p className="text-secondary text-sm leading-relaxed max-w-sm [text-wrap:balance]">
                    {t.supportModalDesc}
@@ -118,9 +115,9 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
 
             <div className="relative z-10 px-8 pb-8 flex flex-col gap-6">
                 
-                {/* PREFERRED SECTION */}
+                {/* PRIORITY SECTION */}
                 <div className="space-y-3">
-                    <h4 className="text-[10px] font-mono uppercase tracking-widest text-accent-lime/80 flex items-center gap-2">
+                    <h4 className="text-[10px] font-mono uppercase tracking-[0.3em] text-accent-lime/80 flex items-center gap-2">
                         <Zap size={10} /> {t.preferredMethods}
                     </h4>
                     
@@ -169,9 +166,9 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
 
                 <div className="w-full h-px bg-white/5" />
 
-                {/* OTHER SECTION */}
+                {/* ADDITIONAL SECTION */}
                 <div className="space-y-3">
-                     <h4 className="text-[10px] font-mono uppercase tracking-widest text-white/30">
+                     <h4 className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/30">
                         {t.otherMethods}
                     </h4>
                     

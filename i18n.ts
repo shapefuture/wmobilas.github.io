@@ -92,8 +92,8 @@ export const translations = {
     // Support Modal
     supportModalTitle: "Accelerate the Future",
     supportModalDesc: "Your contribution directly fuels independent research into collective consciousness and open-source systems. Thank you for your energy.",
-    preferredMethods: "Priority Channels",
-    otherMethods: "Standard Channels",
+    preferredMethods: "PRIORITY",
+    otherMethods: "ADDITIONAL",
     copy: "Copy",
     copied: "Copied",
     
@@ -216,8 +216,8 @@ export const translations = {
     // Support Modal
     supportModalTitle: "Ускорьте Будущее",
     supportModalDesc: "Ваш вклад напрямую питает независимые исследования в области коллективного сознания и открытых систем. Спасибо за вашу энергию.",
-    preferredMethods: "Приоритетные каналы",
-    otherMethods: "Стандартные каналы",
+    preferredMethods: "ПРИОРИТЕТНЫЕ",
+    otherMethods: "ДОПОЛНИТЕЛЬНЫЕ",
     copy: "Скопировать",
     copied: "Скопировано",
     

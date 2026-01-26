@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Hero } from './components/Hero';
@@ -33,11 +34,11 @@ const App: React.FC = () => {
   const t = useMemo(() => translations[locale], [locale]);
 
   const navSections = useMemo(() => [
-    { id: 'home', label: t.home },
     { id: 'about', label: t.identity },
     { id: 'projects', label: t.work },
     { id: 'services', label: t.caps },
     { id: 'contact', label: t.contact },
+    { id: 'support', label: t.support },
   ], [t]);
 
   useEffect(() => {
@@ -86,7 +87,6 @@ const App: React.FC = () => {
   };
 
   const handlePreloaderComplete = () => {
-    // Immediate reveal to start the focus pull as the preloader flash is at its peak
     setPreloaderActive(false);
     setRevealContent(true);
   };
@@ -101,6 +101,23 @@ const App: React.FC = () => {
              <Preloader key="preloader" onComplete={handlePreloaderComplete} t={t} />
           )}
       </AnimatePresence>
+
+      <SectionNavigator sections={navSections} />
+      <ScrollToTop />
+      
+      {langTransition.active && (
+          <div className="fixed inset-0 z-[10000] pointer-events-none overflow-hidden">
+              <div 
+                  className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
+                  style={{
+                      maskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
+                      WebkitMaskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
+                  }}
+              />
+          </div>
+      )}
+
+      <Header locale={locale} setLocale={toggleLanguage as any} t={t} />
 
       <motion.div
         className="relative z-0 w-full bg-background text-primary selection:bg-accent-lime selection:text-black"
@@ -120,23 +137,6 @@ const App: React.FC = () => {
           opacity: { duration: 1.2 }
         }}
       >
-          <SectionNavigator sections={navSections} />
-          <ScrollToTop />
-          
-          {langTransition.active && (
-              <div className="fixed inset-0 z-[10000] pointer-events-none overflow-hidden">
-                  <div 
-                      className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
-                      style={{
-                          maskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
-                          WebkitMaskImage: `radial-gradient(circle at ${langTransition.x}px ${langTransition.y}px, black ${langTransition.progress * 150}%, transparent ${langTransition.progress * 150}%)`,
-                      }}
-                  />
-              </div>
-          )}
-
-          <Header locale={locale} setLocale={toggleLanguage as any} t={t} />
-          
           <main className="relative z-10 w-full overflow-x-hidden">
             <Hero 
               t={t} 

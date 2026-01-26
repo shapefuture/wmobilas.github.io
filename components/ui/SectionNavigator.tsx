@@ -13,14 +13,14 @@ interface Section {
 export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }) => {
   const [activeSection, setActiveSection] = useState(sections[0].id);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [hasScrolledOnce, setHasScrolledOnce] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     let scrollTimeout: any;
     const handleScroll = () => {
-      if (window.scrollY > 100) {
-        setHasScrolledOnce(true);
-      }
+      // Hide progress dots in Hero section (first 80% of viewport)
+      const threshold = window.innerHeight * 0.8;
+      setIsVisible(window.scrollY > threshold);
       
       setIsScrolling(true);
       clearTimeout(scrollTimeout);
@@ -38,7 +38,8 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
     return () => window.removeEventListener('scroll', handleScroll);
   }, [sections]);
 
@@ -51,14 +52,15 @@ export const SectionNavigator: React.FC<{ sections: Section[] }> = ({ sections }
 
   return (
     <AnimatePresence>
-      {hasScrolledOnce && (
+      {isVisible && (
         <MotionDiv 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="fixed right-6 bottom-32 z-[90] hidden md:flex flex-col items-end gap-6 group"
         >
-            {sections.map((section, i) => {
+            {sections.map((section) => {
                 const isActive = activeSection === section.id;
                 return (
                 <button

@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { Section } from './ui/Section';
@@ -53,7 +52,7 @@ export const Support: React.FC<{ t: any }> = ({ t }) => {
 
   return (
     <>
-        <Section className="py-24 md:py-32 relative overflow-hidden">
+        <Section id="support" className="py-24 md:py-32 relative overflow-hidden">
         {/* Premium Background FX - Heartbeat Resonance */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
             <MotionDiv 

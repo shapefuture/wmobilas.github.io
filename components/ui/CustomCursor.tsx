@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 
 export const CustomCursor: React.FC = () => {
@@ -76,20 +77,20 @@ export const CustomCursor: React.FC = () => {
 
   return (
     <>
-      {/* Main Dot - The Anchor (Instant) */}
+      {/* Main Dot - Elevated Z-Index */}
       <div 
         ref={cursorRef} 
-        className="fixed top-0 left-0 w-2 h-2 bg-accent-lime rounded-full pointer-events-none z-[9999] opacity-0 mix-blend-difference will-change-transform"
+        className="fixed top-0 left-0 w-2 h-2 bg-accent-lime rounded-full pointer-events-none z-[100000] opacity-0 mix-blend-difference will-change-transform"
         style={{ 
             marginTop: '-4px', 
             marginLeft: '-4px'
         }} 
       />
       
-      {/* Magnetic Trailer Ring - No Background, just Border */}
+      {/* Magnetic Trailer Ring - Elevated Z-Index */}
       <div 
         ref={trailerRef} 
-        className={`fixed top-0 left-0 border border-accent-lime rounded-full pointer-events-none z-[9998] opacity-0 mix-blend-difference transition-all duration-300 ease-out will-change-transform
+        className={`fixed top-0 left-0 border border-accent-lime rounded-full pointer-events-none z-[99999] opacity-0 mix-blend-difference transition-all duration-300 ease-out will-change-transform
             ${isHovering ? 'w-12 h-12 border-2' : 'w-5 h-5 border'}
         `}
         style={{ 
