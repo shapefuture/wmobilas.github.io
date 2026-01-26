@@ -14,8 +14,13 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Handle mounting state for SSR/Portal safety
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Handle body scroll locking
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -34,8 +39,16 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
 
   const backdropVariants = {
     hidden: { opacity: 0, backdropFilter: "blur(0px)" },
-    visible: { opacity: 1, backdropFilter: "blur(12px)", transition: { duration: 0.4 } },
-    exit: { opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.3 } }
+    visible: { 
+      opacity: 1, 
+      backdropFilter: "blur(12px)",
+      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
+    },
+    exit: { 
+      opacity: 0, 
+      backdropFilter: "blur(0px)",
+      transition: { duration: 0.3, ease: "easeInOut" } 
+    }
   };
 
   const modalVariants = {
@@ -44,18 +57,31 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
         scale: 1, 
         opacity: 1, 
         y: 0,
-        transition: { type: "spring", stiffness: 300, damping: 30 } 
+        transition: { 
+          type: "spring", 
+          stiffness: 350, 
+          damping: 25,
+          mass: 0.8
+        } 
     },
-    exit: { scale: 0.9, opacity: 0, y: 20, transition: { duration: 0.2 } }
+    exit: { 
+      scale: 0.95, 
+      opacity: 0, 
+      y: 10, 
+      transition: { duration: 0.2, ease: "easeIn" } 
+    }
   };
 
   if (!mounted) return null;
 
+  // The createPortal MUST be outside AnimatePresence or AnimatePresence must stay alive
+  // to track the exit animation.
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60"
+          key="support-modal-wrapper"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 transform-gpu"
           variants={backdropVariants}
           initial="hidden"
           animate="visible"
@@ -63,7 +89,8 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
           onClick={onClose}
         >
           <motion.div
-            className="relative w-full max-w-lg bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            key="support-modal-container"
+            className="relative w-full max-w-lg bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col transform-gpu will-change-transform"
             variants={modalVariants}
             onClick={(e) => e.stopPropagation()}
           >
@@ -83,7 +110,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
               </div>
               <button 
                 onClick={onClose}
-                className="text-white/40 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full"
+                className="text-white/40 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full outline-none"
               >
                 <X size={20} />
               </button>
@@ -115,7 +142,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
                         {/* Zelle */}
                         <button 
                            onClick={handleCopyZelle}
-                           className="group flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-accent-lime/50 hover:bg-white/10 transition-all duration-300 text-left relative overflow-hidden"
+                           className="group flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-accent-lime/50 hover:bg-white/10 transition-all duration-300 text-left relative overflow-hidden outline-none"
                         >
                              <div className="flex justify-between items-center mb-2 relative z-10">
                                 <span className="font-serif italic text-xl text-white">Zelle</span>
@@ -124,13 +151,18 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, t }
                             <span className="text-[10px] font-mono text-white/40 group-hover:text-white/60 relative z-10">wmobilas@gmail.com</span>
                             
                             {/* Copied Feedback Overlay */}
-                            <motion.div 
-                                initial={false}
-                                animate={{ opacity: copied ? 1 : 0 }}
-                                className="absolute inset-0 bg-accent-lime flex items-center justify-center z-20 pointer-events-none"
-                            >
-                                <span className="text-black font-bold font-mono text-xs uppercase tracking-widest">{t.copied}</span>
-                            </motion.div>
+                            <AnimatePresence>
+                                {copied && (
+                                    <motion.div 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="absolute inset-0 bg-accent-lime flex items-center justify-center z-20 pointer-events-none"
+                                    >
+                                        <span className="text-black font-bold font-mono text-xs uppercase tracking-widest">{t.copied}</span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </button>
                     </div>
                 </div>
